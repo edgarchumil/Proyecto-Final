@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DW Proyecto Final</title>
+    <link rel="stylesheet" href="estilo.css">
+</head>
+
+<body>
+    <div class="center-wrap">
+        <header class="topbar">
+            <h1>Cripto <span>• Desarrollo Web</span></h1>
+            <nav>
+                <button id="btn-logout" class="btn" style="display:none">Salir</button>
+            </nav>
+        </header>
+        <main id="auth-grid" class="auth-grid single" role="main" aria-label="Autenticación">
+            <!-- LOGIN -->
+            <section id="auth" class="card" aria-labelledby="login-title">
+                <h2 id="login-title">Ingresar</h2>
+                <label class="sr-only" for="login-username">Usuario</label>
+                <input id="login-username" placeholder="usuario" autocomplete="username" />
+                <label class="sr-only" for="login-password">Contraseña</label>
+                <input id="login-password" type="password" placeholder="contraseña" autocomplete="current-password" />
+                <button id="btn-login" class="btn primary" type="button">Iniciar sesión</button>
+                <div class="help">¿No tienes cuenta?</div>
+                <button id="btn-goto-register" class="btn linklike" type="button">Ir a registro</button>
+            </section>
+
+            <!-- REGISTRO -->
+            <section id="register" class="card" aria-labelledby="reg-title" style="display:none">
+                <h2 id="reg-title">Registro</h2>
+                <label class="sr-only" for="reg-username">Usuario</label>
+                <input id="reg-username" placeholder="usuario" autocomplete="username" />
+                <label class="sr-only" for="reg-email">Email (opcional)</label>
+                <input id="reg-email" placeholder="email (opcional)" autocomplete="email" />
+                <label class="sr-only" for="reg-password">Contraseña</label>
+                <input id="reg-password" type="password" placeholder="contraseña" autocomplete="new-password" />
+                <button id="btn-register" class="btn" type="button">Crear cuenta</button>
+                <div id="msg" class="msg" aria-live="polite"></div>
+                <div class="help">¿Ya tienes cuenta?</div>
+                <button id="btn-goto-login" class="btn linklike" type="button">Volver a iniciar sesión</button>
+            </section>
+
+            <!-- ZONA PROTEGIDA -->
+            <section id="app" class="card" style="display:none" aria-live="polite">
+                <h2>Zona protegida</h2>
+                <div id="welcome"></div>
+                <button id="btn-profile" class="btn" type="button">Cargar perfil</button>
+                <pre id="output" class="code"></pre>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
