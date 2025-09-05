@@ -7,9 +7,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
-# Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -20,6 +17,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders', 
     'users',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -82,7 +80,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -121,8 +118,16 @@ SIMPLE_JWT = {
 }
 
 
-# CORS: permite que el frontend (puerto 5500 o 8000) consuma la API
+# CORS: permite que el frontend (puerto 4200 o 8000) consuma la API
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5500', 'http://127.0.0.1:5500',
+    #'http://localhost:5500', 'http://127.0.0.1:5500',
     'http://localhost:8000', 'http://127.0.0.1:8000',
+    'http://localhost:4200', 'http://127.0.0.1:4200',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
