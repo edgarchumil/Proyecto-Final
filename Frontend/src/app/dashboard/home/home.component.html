@@ -2,8 +2,9 @@
   <h2>Zona protegida</h2>
   <div *ngIf="loading">Cargando...</div>
   <div *ngIf="!loading && me">
-    <div id="welcome">Bienvenido, {{ me.username }}</div>
+    <div id="welcome">Bienvenidos, {{ me.username }}</div>
     <pre id="output" class="code">{{ me | json }}</pre>
   </div>
   <div *ngIf="!loading && !me && error" class="msg">Error: {{ error }}</div>
 </section>
+
