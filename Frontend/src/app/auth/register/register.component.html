@@ -1,19 +1,10 @@
 <section id="register" class="card" aria-labelledby="reg-title">
   <h2 id="reg-title">Registro</h2>
-
-  <label class="sr-only" for="reg-username">Usuario</label>
   <input id="reg-username" [(ngModel)]="username" placeholder="usuario" autocomplete="username" />
-
-  <label class="sr-only" for="reg-email">Email (opcional)</label>
   <input id="reg-email" [(ngModel)]="email" placeholder="email (opcional)" autocomplete="email" />
-
-  <label class="sr-only" for="reg-password">Contraseña</label>
   <input id="reg-password" [(ngModel)]="password" type="password" placeholder="contraseña" autocomplete="new-password" />
-
   <button class="btn" type="button" (click)="submit()" [disabled]="loading">{{ loading ? 'Creando...' : 'Crear cuenta' }}</button>
-
   <div id="msg" class="msg" aria-live="polite">{{ msg }}</div>
-
   <div class="help">¿Ya tienes cuenta?</div>
   <a class="btn linklike" routerLink="/auth/login">Volver a iniciar sesión</a>
 </section>

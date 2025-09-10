@@ -14,20 +14,11 @@ import { AuthService } from '../../core/auth.service';
 export class TopbarComponent implements OnInit, OnDestroy {
   isLoggedIn = false;
   sub?: Subscription;
-
   constructor(private auth: AuthService, private router: Router) {}
-
   ngOnInit(): void {
     this.isLoggedIn = this.auth.isAuthenticated();
     this.sub = this.auth.authStatus$.subscribe(v => this.isLoggedIn = v);
   }
-
-  logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/auth/login']);
-  }
-
-  ngOnDestroy(): void {
-    this.sub?.unsubscribe();
-  }
+  logout(): void { this.auth.logout(); this.router.navigate(['/auth/login']); }
+  ngOnDestroy(): void { this.sub?.unsubscribe(); }
 }

@@ -1,18 +1,9 @@
 <section id="auth" class="card" aria-labelledby="login-title">
   <h2 id="login-title">Ingresar</h2>
-
-  <label class="sr-only" for="login-username">Usuario</label>
   <input id="login-username" [(ngModel)]="username" placeholder="usuario" autocomplete="username" />
-
-  <label class="sr-only" for="login-password">Contraseña</label>
   <input id="login-password" [(ngModel)]="password" type="password" placeholder="contraseña" autocomplete="current-password" />
-
-  <button class="btn primary" type="button" (click)="submit()" [disabled]="loading">
-    {{ loading ? 'Ingresando...' : 'Iniciar sesión' }}
-  </button>
-
+  <button class="btn primary" type="button" (click)="submit()" [disabled]="loading">{{ loading ? 'Ingresando...' : 'Iniciar sesión' }}</button>
   <div class="msg" *ngIf="error">{{ error }}</div>
-
   <div class="help">¿No tienes cuenta?</div>
   <a class="btn linklike" routerLink="/auth/register">Ir a registro</a>
 </section>

@@ -1,0 +1,53 @@
+<div id="dashboard" class="dashboard">
+  <h2>Dashboard Cripto</h2>
+
+  <section class="card balance-card">
+    <h3>Saldo actual</h3>
+    <p><strong id="saldo">{{ saldo | number:'1.2-2' }}</strong></p>
+  </section>
+
+  <section class="card">
+    <h3>Portafolio</h3>
+    <ul id="crypto-list">
+      <li *ngFor="let coin of ['BTC','ETH','DOGE']">
+        <span>{{ coin }}: {{ (portfolio[coin] || 0) | number:'1.6-6' }}</span>
+        <span>{{ ((portfolio[coin] || 0) * prices[coin]) | number:'1.2-2' }} USD</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h3>Comprar / Vender</h3>
+    <div>
+      <label for="crypto-select">Criptomoneda</label>
+      <select id="crypto-select" [(ngModel)]="selected">
+        <option value="BTC">Bitcoin (BTC)</option>
+        <option value="ETH">Ethereum (ETH)</option>
+        <option value="DOGE">Dogecoin (DOGE)</option>
+      </select>
+    </div>
+    <div>
+      <label for="amount">Cantidad</label>
+      <input type="number" id="amount" placeholder="0.00" [(ngModel)]="amount" />
+    </div>
+    <div class="actions">
+      <button id="btn-buy" class="btn primary" (click)="buy()">Comprar</button>
+      <button id="btn-sell" class="btn" (click)="sell()">Vender</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Historial de Transacciones</h3>
+    <ul id="history-list">
+      <li *ngFor="let tx of history">
+        <span>{{ tx.date }} - {{ tx.type }} {{ tx.amount }} {{ tx.coin }}</span>
+        <span>Saldo: {{ tx.saldo | number:'1.2-2' }}</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h3>Reporte de Actividad</h3>
+    <canvas id="activityChart" width="400" height="200"></canvas>
+  </section>
+</div>
