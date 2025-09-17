@@ -1,4 +1,27 @@
-<header class="topbar">
-  <h1>Cripto <span>• Desarrollo Web</span></h1>
-  <nav><button *ngIf="isLoggedIn" (click)="logout()" class="btn" id="btn-logout" type="button">Salir</button></nav>
+<header class="topbar" role="banner">
+  <div class="topbar__container">
+    <a class="brand" routerLink="/" aria-label="Inicio">
+      Cripto <span>• Desarrollo Web</span>
+    </a>
+
+    <!-- Botón hamburguesa (móvil) -->
+    <button
+      class="hamburger"
+      type="button"
+      aria-label="Abrir menú"
+      [attr.aria-expanded]="open ? 'true' : 'false'"
+      (click)="toggle()">
+      <span></span><span></span><span></span>
+    </button>
+
+    <!-- Navegación -->
+    <nav class="nav" [class.open]="open" role="navigation" aria-label="Principal">
+      <a routerLink="/dashboard" routerLinkActive="active" (click)="close()">Dashboard</a>
+
+      <a *ngIf="!isLoggedIn" routerLink="/auth/login" routerLinkActive="active" (click)="close()">Ingresar</a>
+      <a *ngIf="!isLoggedIn" routerLink="/auth/register" routerLinkActive="active" (click)="close()">Registro</a>
+
+      <button *ngIf="isLoggedIn" class="btn danger" type="button" (click)="logout()">Salir</button>
+    </nav>
+  </div>
 </header>

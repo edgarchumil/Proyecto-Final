@@ -1,7 +1,14 @@
+// src/app/dashboard/dashboard.component.ts
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Chart, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Filler, Legend } from 'chart.js';
+
+// Chart.js (asegúrate de tenerlo instalado: npm i chart.js)
+import {
+  Chart,
+  LineController, LineElement, PointElement,
+  LinearScale, Title, CategoryScale, Filler, Legend
+} from 'chart.js';
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Filler, Legend);
 
 @Component({
@@ -55,13 +62,25 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     const labels = this.history.map(h => h.date);
     const data = this.history.map(h => h.saldo);
     this.chart?.destroy();
     this.chart = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets: [{ label: 'Saldo', data, fill: true, tension: 0.3 }] },
-      options: { responsive: true, plugins: { legend: { display: true } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true } }
+      }
     });
+  }
+
+  reset() {
+    this.saldo = 1000;
+    this.portfolio = { BTC: 0, ETH: 0, DOGE: 0 };
+    this.history = [];
+    this.renderChart();
   }
 }

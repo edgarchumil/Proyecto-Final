@@ -4,42 +4,58 @@ import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 interface TokenPair { access: string; refresh: string; }
+interface MeResponse { id: number; username: string; email?: string; }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private authStatus = new BehaviorSubject<boolean>(!!localStorage.getItem('access'));
+  /** Observable de estado de sesión */
   authStatus$ = this.authStatus.asObservable();
 
   constructor(private http: HttpClient) {}
 
-  login(username: string, password: string): Observable<TokenPair> {
-    return this.http.post<TokenPair>(`${environment.apiUrl}/auth/token/`, { username, password }).pipe(
-      tap(t => {
-        localStorage.setItem('access', t.access);
-        localStorage.setItem('refresh', t.refresh);
-        this.authStatus.next(true);
-      })
-    );
-  }
+  // ---------- Sesión ----------
+  isAuthenticated(): boolean { return !!localStorage.getItem('access'); }
 
-  register(username: string, email: string | null, password: string) {
-    return this.http.post(`${environment.apiUrl}/users/register/`, { username, email, password });
-  }
-
-  me() { return this.http.get(`${environment.apiUrl}/users/me/`); }
-
-  refreshToken() {
-    const refresh = localStorage.getItem('refresh');
-    return this.http.post<{ access: string }>(`${environment.apiUrl}/auth/token/refresh/`, { refresh }).pipe(
-      tap(r => { if (r?.access) localStorage.setItem('access', r.access); })
-    );
-  }
-
-  logout() {
+  private clearTokens(): void {
     localStorage.removeItem('access');
     localStorage.removeItem('refresh');
     this.authStatus.next(false);
   }
 
-  isAuthenticated() { return !!localStorage.getItem('access'); }
+  /** Forzar login fresco al abrir la app (si así lo quieres) */
+  forceFreshLogin(): void { this.clearTokens(); }
+
+  /** Logout silencioso (para beforeunload/pagehide) */
+  silentLogout(): void { this.clearTokens(); }
+
+  logout(): void { this.clearTokens(); }
+
+  // ---------- Endpoints ----------
+  login(username: string, password: string): Observable<TokenPair> {
+    return this.http
+      .post<TokenPair>(`${environment.apiUrl}/auth/token/`, { username, password })
+      .pipe(
+        tap(t => {
+          localStorage.setItem('access', t.access);
+          localStorage.setItem('refresh', t.refresh);
+          this.authStatus.next(true);
+        })
+      );
+  }
+
+  register(username: string, email: string | null, password: string): Observable<MeResponse> {
+    return this.http.post<MeResponse>(`${environment.apiUrl}/users/register/`, { username, email, password });
+  }
+
+  me(): Observable<MeResponse> {
+    return this.http.get<MeResponse>(`${environment.apiUrl}/users/me/`);
+  }
+
+  refreshToken(): Observable<{ access: string }> {
+    const refresh = localStorage.getItem('refresh');
+    return this.http
+      .post<{ access: string }>(`${environment.apiUrl}/auth/token/refresh/`, { refresh })
+      .pipe(tap(r => { if (r?.access) localStorage.setItem('access', r.access); }));
+  }
 }

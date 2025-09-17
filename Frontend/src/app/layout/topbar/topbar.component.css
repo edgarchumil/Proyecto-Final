@@ -1,0 +1,76 @@
+/* ===== Contenedor fijo y con blur ===== */
+.topbar{
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(8px);
+  background: rgba(8, 14, 29, 0.75); /* acorde a tu tema oscuro */
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.topbar__container{
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ===== Marca ===== */
+.brand{
+  color: #fff; font-weight: 800; letter-spacing: .2px;
+  text-decoration: none; font-size: clamp(1.1rem, 2vw, 1.6rem);
+}
+.brand span{ font-weight: 600; opacity: .9; }
+
+/* ===== Menú (desktop) ===== */
+.nav{
+  display: flex; align-items: center; gap: 14px;
+}
+.nav a{
+  color: #cbd5e1; text-decoration: none;
+  padding: 8px 10px; border-radius: 10px;
+  transition: background .2s ease, color .2s ease;
+}
+.nav a:hover, .nav a.active{
+  background: rgba(255,255,255,.08); color: #fff;
+}
+
+/* ===== Botón “Salir” ===== */
+.btn{
+  padding: 8px 12px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.08);
+  color:#e5e7eb; cursor:pointer;
+}
+.btn.danger{ background:#ef4444; border-color:#ef4444; color:#fff; }
+.btn.danger:hover{ filter: brightness(1.05); }
+
+/* ===== Hamburguesa (móvil) ===== */
+.hamburger{
+  display: none; width: 40px; height: 40px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06); cursor: pointer;
+  align-items: center; justify-content: center; gap: 4px;
+}
+.hamburger span{
+  display:block; width: 18px; height: 2px; background:#e5e7eb;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 800px){
+  .hamburger{ display: inline-flex; }
+
+  /* nav colapsado por defecto */
+  .nav{
+    position: absolute; right: 16px; top: 58px;
+    display: grid; gap: 8px;
+    background: rgba(8, 14, 29, .97);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 10px;
+    min-width: 180px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    visibility: hidden; opacity: 0; transform: translateY(-6px);
+    transition: opacity .15s ease, transform .15s ease, visibility .15s;
+  }
+  .nav.open{
+    visibility: visible; opacity: 1; transform: translateY(0);
+  }
+}

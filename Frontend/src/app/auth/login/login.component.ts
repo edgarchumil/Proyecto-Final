@@ -20,9 +20,13 @@ export class LoginComponent {
   submit(): void {
     if (!this.username || !this.password) { this.error = 'Completa usuario y contraseña.'; return; }
     this.loading = true; this.error = '';
-    this.auth.login(this.username, this.password).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
-      error: (e) => { this.loading = false; this.error = (e?.error && typeof e.error==='object') ? JSON.stringify(e.error) : 'Login fallido'; }
-    });
+
+  this.auth.login(this.username, this.password).subscribe({
+    next: () => this.router.navigate(['/dashboard']),
+    error: (e: any) => {
+      this.loading = false;
+      this.error = (e?.error && typeof e.error === 'object') ? JSON.stringify(e.error) : 'Login fallido';
+    }
+  });
   }
 }

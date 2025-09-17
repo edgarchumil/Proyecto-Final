@@ -1,53 +1,76 @@
-<div id="dashboard" class="dashboard">
-  <h2>Dashboard Cripto</h2>
+<div class="dash">
+  <header class="dash__header">
+    <h2>Dashboard Cripto</h2>
+    <div class="dash__kpis">
+      <div class="kpi"><span>Total Wallet</span><strong>{{ saldo | number:'1.2-2' }} USD</strong></div>
+      <div class="kpi"><span>Activos</span><strong>{{ (portfolio['BTC']+portfolio['ETH']+portfolio['DOGE']) | number:'1.6-6' }}</strong></div>
+    </div>
+  </header>
 
-  <section class="card balance-card">
-    <h3>Saldo actual</h3>
-    <p><strong id="saldo">{{ saldo | number:'1.2-2' }}</strong></p>
+  <section class="card balance" aria-labelledby="balance-title">
+    <h3 id="balance-title">Saldo actual</h3>
+    <p class="balance__amount">{{ saldo | number:'1.2-2' }}</p>
+    <button class="btn outline" (click)="reset()">Reiniciar demo</button>
   </section>
 
-  <section class="card">
-    <h3>Portafolio</h3>
-    <ul id="crypto-list">
+  <section class="card portfolio" aria-labelledby="portfolio-title">
+    <h3 id="portfolio-title">Portafolio</h3>
+    <ul class="list">
       <li *ngFor="let coin of ['BTC','ETH','DOGE']">
-        <span>{{ coin }}: {{ (portfolio[coin] || 0) | number:'1.6-6' }}</span>
-        <span>{{ ((portfolio[coin] || 0) * prices[coin]) | number:'1.2-2' }} USD</span>
+        <div class="list__left">
+          <strong>{{ coin }}</strong>
+          <small>{{ (portfolio[coin] || 0) | number:'1.6-6' }}</small>
+        </div>
+        <div class="list__right">
+          <span>{{ ((portfolio[coin] || 0) * prices[coin]) | number:'1.2-2' }} USD</span>
+        </div>
       </li>
     </ul>
   </section>
 
-  <section class="card">
-    <h3>Comprar / Vender</h3>
-    <div>
-      <label for="crypto-select">Criptomoneda</label>
-      <select id="crypto-select" [(ngModel)]="selected">
-        <option value="BTC">Bitcoin (BTC)</option>
-        <option value="ETH">Ethereum (ETH)</option>
-        <option value="DOGE">Dogecoin (DOGE)</option>
-      </select>
-    </div>
-    <div>
-      <label for="amount">Cantidad</label>
+  <section class="card trade" aria-labelledby="trade-title">
+    <h3 id="trade-title">Comprar / Vender</h3>
+
+    <label for="crypto-select">Criptomoneda</label>
+    <select id="crypto-select" [(ngModel)]="selected">
+      <option value="BTC">Bitcoin (BTC)</option>
+      <option value="ETH">Ethereum (ETH)</option>
+      <option value="DOGE">Dogecoin (DOGE)</option>
+    </select>
+
+    <label for="amount">Cantidad</label>
+    <div class="input-amount">
       <input type="number" id="amount" placeholder="0.00" [(ngModel)]="amount" />
+      <button class="icon" type="button" (click)="amount = null" aria-label="Limpiar">⌫</button>
     </div>
+
     <div class="actions">
-      <button id="btn-buy" class="btn primary" (click)="buy()">Comprar</button>
-      <button id="btn-sell" class="btn" (click)="sell()">Vender</button>
+      <button class="btn primary" (click)="buy()">Comprar</button>
+      <button class="btn" (click)="sell()">Vender</button>
     </div>
+    <small class="muted">Precio {{ selected }}: {{ prices[selected] | number:'1.2-2' }} USD</small>
   </section>
 
-  <section class="card">
-    <h3>Historial de Transacciones</h3>
-    <ul id="history-list">
+  <section class="card history" aria-labelledby="history-title">
+    <h3 id="history-title">Historial de Transacciones</h3>
+    <ul class="history__list" *ngIf="history.length; else emptyState">
       <li *ngFor="let tx of history">
-        <span>{{ tx.date }} - {{ tx.type }} {{ tx.amount }} {{ tx.coin }}</span>
-        <span>Saldo: {{ tx.saldo | number:'1.2-2' }}</span>
+        <div>
+          <strong>{{ tx.type }}</strong> {{ tx.amount }} {{ tx.coin }}
+          <small class="muted">{{ tx.date }}</small>
+        </div>
+        <span class="muted">Saldo: {{ tx.saldo | number:'1.2-2' }}</span>
       </li>
     </ul>
+    <ng-template #emptyState>
+      <div class="empty">Aún no hay transacciones.</div>
+    </ng-template>
   </section>
 
-  <section class="card">
-    <h3>Reporte de Actividad</h3>
-    <canvas id="activityChart" width="400" height="200"></canvas>
+  <section class="card chart" aria-labelledby="chart-title">
+    <h3 id="chart-title">Reporte de Actividad</h3>
+    <div class="chart__wrap">
+      <canvas id="activityChart"></canvas>
+    </div>
   </section>
 </div>
