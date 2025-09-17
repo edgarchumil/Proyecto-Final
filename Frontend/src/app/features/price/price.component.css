@@ -1,0 +1,21 @@
+:host{ display:block; }
+
+.feature-center{
+  min-height: calc(100vh - 96px);
+  display:grid; place-items:center; padding:24px; box-sizing:border-box;
+}
+.feature-card{
+  width:100%; max-width:980px; background:#121826; color:#e5e7eb;
+  padding:20px; border-radius:16px; border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 10px 30px rgba(0,0,0,.35); box-sizing:border-box;
+}
+.feature-card h2{ margin:0 0 12px; }
+.muted{ opacity:.85; }
+
+/* “Esqueleto” del gráfico */
+.skeleton-chart{
+  height:220px; border-radius:16px; border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.12),rgba(255,255,255,.06));
+  background-size:200% 100%; animation:shimmer 1.2s infinite;
+}
+@keyframes shimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }

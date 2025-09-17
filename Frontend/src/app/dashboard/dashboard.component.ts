@@ -3,7 +3,6 @@ import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-// Chart.js (asegúrate de tenerlo instalado: npm i chart.js)
 import {
   Chart,
   LineController, LineElement, PointElement,
@@ -19,6 +18,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, Title, Ca
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements AfterViewInit, OnDestroy {
+  // ----- Datos demo que ya tenías -----
   prices: Record<string, number> = { BTC: 50000, ETH: 3000, DOGE: 0.25 };
   saldo = 1000;
   portfolio: Record<string, number> = { BTC: 0, ETH: 0, DOGE: 0 };
@@ -27,7 +27,26 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   amount: number | null = null;
   chart?: Chart;
 
-  ngAfterViewInit(): void { this.renderChart(); }
+  // ----- NUEVOS contadores/indicadores para las tiles del hub -----
+  walletsCount: number | undefined;
+  txCount: number | undefined;
+  blockCount: number | undefined;
+  lastPrice: number | null = null;
+  auditCount: number | undefined;
+
+  ngAfterViewInit(): void {
+    this.renderChart();
+
+    // Mock inicial (luego lo reemplazas por llamadas a tu API)
+    setTimeout(() => {
+      this.walletsCount = 1;
+      this.txCount = this.history.length;
+      this.blockCount = 0;
+      this.lastPrice = 1.00;     // precio SIM/USD
+      this.auditCount = 0;
+    }, 300);
+  }
+
   ngOnDestroy(): void { this.chart?.destroy(); }
 
   buy() {
@@ -55,6 +74,8 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   private addTx(type: string, coin: string, amount: number) {
     this.history.push({ date: new Date().toLocaleTimeString(), type, coin, amount, saldo: this.saldo });
     this.renderChart();
+    // Actualiza contador de transacciones del hub
+    this.txCount = this.history.length;
   }
 
   private renderChart() {
@@ -82,5 +103,6 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
     this.portfolio = { BTC: 0, ETH: 0, DOGE: 0 };
     this.history = [];
     this.renderChart();
+    this.txCount = 0;
   }
 }

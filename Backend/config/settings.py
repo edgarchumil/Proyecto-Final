@@ -18,6 +18,11 @@ INSTALLED_APPS = [
     'corsheaders', 
     'users',
     'api',
+    'wallets',
+    'blocks',
+    'priceticks',
+    'transactions',
+    'auditlog',
 ]
 
 MIDDLEWARE = [

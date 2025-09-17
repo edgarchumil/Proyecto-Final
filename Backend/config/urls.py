@@ -17,4 +17,7 @@ urlpatterns = [
 
     # Público para comprobar que el server vive
     path('api/health/', HealthView.as_view(), name='health'),
+    
+    # API de wallets
+    #path('api/', include('wallets.urls')),
 ]
