@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgFor } from '@angular/common';
+
 
 @Component({
   selector: 'app-wallets',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NgFor],
   templateUrl: './wallets.component.html',
   styleUrls: ['./wallets.component.css']
 })
