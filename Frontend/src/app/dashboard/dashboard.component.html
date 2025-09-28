@@ -1,95 +1,117 @@
-<header class="dash__header">
-  <h2>Dashboard Cripto</h2>
-  <div class="dash__kpis">
-    <div class="kpi"><span>Total Wallet</span><strong>{{ saldo | number:'1.2-2' }} USD</strong></div>
-    <div class="kpi"><span>Activos</span><strong>{{ (portfolio['BTC']+portfolio['ETH']+portfolio['DOGE']) | number:'1.6-6' }}</strong></div>
+<div class="exchange">
+  <!-- Barra tipo ticker -->
+  <div class="ticker">
+    <div class="pair">Tus fondos</div>
+    <div class="last">{{ totalBalance | number:'1.4-4' }} SIM</div>
+    <div class="change">
+      ≈ {{ holdingsUsd !== null ? (holdingsUsd | number:'1.2-2') : '—' }} USD
+    </div>
+    <button class="btn outline refresh" type="button" (click)="loadMetrics()" [disabled]="loadingMetrics">
+      {{ loadingMetrics ? 'Actualizando…' : 'Actualizar' }}
+    </button>
   </div>
-</header>
 
-<!-- Resumen de entidades del ER -->
-<section class="card hub" aria-label="Mapa de funciones">
-  <div class="hub__grid">
-    <a class="tile" routerLink="/wallets">
-      <h4>Wallets</h4>
-      <p class="muted">Administra tus billeteras</p>
-      <span class="pill">{{ walletsCount ?? 0 }}</span>
-    </a>
+  <!-- Grid principal: izquierda / centro / derecha -->
+  <div class="market-grid">
+    <!-- Aviso bienvenida -->
+    <section *ngIf="welcomeBanner" class="panel notice" style="grid-column: 1 / -1;">
+      <strong>Bienvenido</strong>
+      <div class="muted">Se creó tu wallet por defecto y se acreditaron 5 SIM de cortesía.</div>
+    </section>
+    <!-- Columna izquierda: resumen de cuenta -->
+    <section class="panel account">
+      <h3>Cuenta</h3>
+      <div class="kpis">
+        <div class="kpi"><span>Saldo confirmado</span><strong>{{ totalBalance | number:'1.4-4' }} SIM</strong></div>
+        <div class="kpi"><span>Wallets</span><strong>{{ walletsCount ?? 0 }}</strong></div>
+        <div class="kpi"><span>Tx pend.</span><strong>{{ pendingCount }}</strong></div>
+        <div class="kpi"><span>Tx conf.</span><strong>{{ confirmedCount }}</strong></div>
+      </div>
+      <div class="assets">
+        <table *ngIf="walletSummaries.length" class="table compact">
+          <thead><tr><th>Wallet</th><th>Balance</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let item of walletSummaries">
+              <td>{{ item.wallet.name }} (#{{ item.wallet.id }})</td>
+              <td>{{ item.balance | number:'1.4-4' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted" *ngIf="!walletSummaries.length">Sin wallets. Crea una en Wallets.</p>
+        <a class="btn wfull" routerLink="/wallets">Ir a Wallets</a>
+      </div>
+    </section>
 
-    <a class="tile" routerLink="/txs">
-      <h4>Transacciones</h4>
-      <p class="muted">Envíos, recibos, fees</p>
-      <span class="pill">{{ txCount ?? 0 }}</span>
-    </a>
+    <!-- Columna central: gráfico principal + acciones rápidas -->
+    <section class="panel chart">
+      <div class="panel__header">
+        <h3>SIM / USD</h3>
+        <div class="price-inline">
+          <strong>{{ lastPrice ? (lastPrice | number:'1.2-6') : '—' }}</strong>
+          <span class="pill" [class.success]="(priceChangePct||0) >= 0" [class.danger]="(priceChangePct||0) < 0">
+            {{ priceChangePct !== null ? (priceChangePct | number:'1.2-2') + '%' : '—' }}
+          </span>
+        </div>
+      </div>
+      <div class="chart__wrap">
+        <canvas id="activityChart"></canvas>
+        <div class="skeleton" *ngIf="loadingMetrics && !priceSeries.length"></div>
+      </div>
+      <div class="quick-actions">
+        <a class="btn primary" routerLink="/txs">Nueva transacción</a>
+        <a class="btn" routerLink="/blocks">Minar bloque</a>
+        <a class="btn outline" routerLink="/price">Precio</a>
+        <a class="btn outline" routerLink="/audit">Audit</a>
+      </div>
+      <p class="muted" *ngIf="!priceSeries.length">Registra precios para ver el gráfico.</p>
+    </section>
 
-    <a class="tile" routerLink="/blocks">
-      <h4>Bloques</h4>
-      <p class="muted">Altura, merkle root</p>
-      <span class="pill">{{ blockCount ?? 0 }}</span>
-    </a>
+    <!-- Columna derecha: actividad -->
+    <section class="panel activity">
+      <h3>Actividad</h3>
+      <!-- Notificaciones: ahora se muestran como icono en el topbar -->
+      <h4 class="sub">Transacciones recientes</h4>
+      <table *ngIf="recentTransactions.length" class="table compact">
+        <thead><tr><th>ID</th><th>Desde → Hacia</th><th>Monto</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let tx of recentTransactions">
+            <td>#{{ tx.id }}</td>
+            <td>
+              <div>@{{ tx.from_username || '—' }} → @{{ tx.to_username || '—' }}</div>
+              <small class="muted">{{ tx.from_wallet_name }} → {{ tx.to_wallet_name }}</small>
+            </td>
+            <td>{{ tx.amount }}</td>
+            <td><span class="status" [class.pending]="tx.status==='PENDING'" [class.confirmed]="tx.status==='CONFIRMED'" [class.failed]="tx.status==='FAILED'">{{ tx.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted" *ngIf="!recentTransactions.length">Sin actividad aún.</p>
 
-    <a class="tile" routerLink="/price">
-      <h4>Precio SIM/USD</h4>
-      <p class="muted">Serie de PRICE_TICK</p>
-      <span class="pill">{{ lastPrice ? (lastPrice | number:'1.2-2') : '—' }}</span>
-    </a>
+      
 
-    <a class="tile" routerLink="/audit">
-      <h4>Audit Log</h4>
-      <p class="muted">Acciones del sistema</p>
-      <span class="pill">{{ auditCount ?? 0 }}</span>
-    </a>
+      <h4 class="sub">Usuarios</h4>
+      <table *ngIf="users.length" class="table compact">
+        <thead><tr><th>ID</th><th>Usuario</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let u of users">
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted" *ngIf="!users.length">Sin usuarios registrados.</p>
+    </section>
   </div>
-</section>
 
-<!-- lo que ya tenías: balance/portfolio/trade/history/chart -->
-<section class="card balance" aria-labelledby="balance-title">
-  <h3 id="balance-title">Saldo actual</h3>
-  <p class="balance__amount">{{ saldo | number:'1.2-2' }}</p>
-  <button class="btn outline" (click)="reset()">Reiniciar demo</button>
-</section>
-
-<section class="card portfolio" aria-labelledby="portfolio-title">
-  <h3 id="portfolio-title">Portafolio</h3>
-  <ul class="list">
-    <li *ngFor="let coin of ['BTC','ETH','DOGE']">
-      <div class="list__left"><strong>{{ coin }}</strong><small>{{ (portfolio[coin]||0) | number:'1.6-6' }}</small></div>
-      <div class="list__right"><span>{{ ((portfolio[coin]||0)*prices[coin]) | number:'1.2-2' }} USD</span></div>
-    </li>
-  </ul>
-</section>
-
-<section class="card trade" aria-labelledby="trade-title">
-  <h3 id="trade-title">Comprar / Vender</h3>
-  <label for="crypto-select">Criptomoneda</label>
-  <select id="crypto-select" [(ngModel)]="selected">
-    <option value="BTC">Bitcoin (BTC)</option>
-    <option value="ETH">Ethereum (ETH)</option>
-    <option value="DOGE">Dogecoin (DOGE)</option>
-  </select>
-  <label for="amount">Cantidad</label>
-  <div class="input-amount">
-    <input type="number" id="amount" placeholder="0.00" [(ngModel)]="amount" />
-    <button class="icon" type="button" (click)="amount = null" aria-label="Limpiar">⌫</button>
-  </div>
-  <div class="actions">
-    <button class="btn primary" (click)="buy()">Comprar</button>
-    <button class="btn" (click)="sell()">Vender</button>
-  </div>
-  <small class="muted">Precio {{ selected }}: {{ prices[selected] | number:'1.2-2' }} USD</small>
-</section>
-
-<section class="card history" aria-labelledby="history-title">
-  <h3 id="history-title">Historial de Transacciones</h3>
-  <ul class="history__list" *ngIf="history.length; else emptyState">
-    <li *ngFor="let tx of history">
-      <div><strong>{{ tx.type }}</strong> {{ tx.amount }} {{ tx.coin }} <small class="muted">{{ tx.date }}</small></div>
-      <span class="muted">Saldo: {{ tx.saldo | number:'1.2-2' }}</span>
-    </li>
-  </ul>
-  <ng-template #emptyState><div class="empty">Aún no hay transacciones.</div></ng-template>
-</section>
-
-<section class="card chart" aria-labelledby="chart-title">
-  <h3 id="chart-title">Reporte de Actividad</h3>
-  <div class="chart__wrap"><canvas id="activityChart"></canvas></div>
-</section>
+  <!-- Accesos (parte inferior) -->
+  <section class="card hub" aria-label="Accesos rápidos">
+    <div class="hub__grid">
+      <a class="tile" routerLink="/wallets"><h4>Wallets</h4><p class="muted">Administra tus billeteras</p><span class="pill">{{ walletsCount ?? 0 }}</span></a>
+      <a class="tile" routerLink="/txs"><h4>Transacciones</h4><p class="muted">Envíos, recibos, fees</p><span class="pill">{{ txCount ?? 0 }}</span></a>
+      <a class="tile" routerLink="/blocks"><h4>Bloques</h4><p class="muted">Altura, merkle root</p><span class="pill">{{ blockCount ?? 0 }}</span></a>
+      <a class="tile" routerLink="/trade"><h4>Trade</h4><p class="muted">Comprar / Vender SIM</p><span class="pill">Go</span></a>
+      <a class="tile" routerLink="/price"><h4>Precio</h4><p class="muted">Serie SIM/USD</p><span class="pill">{{ lastPrice ? (lastPrice | number:'1.2-2') : '—' }}</span></a>
+      <a class="tile" routerLink="/audit"><h4>Audit Log</h4><p class="muted">Acciones del sistema</p><span class="pill">{{ auditCount ?? 0 }}</span></a>
+    </div>
+  </section>
+</div>

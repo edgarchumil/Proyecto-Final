@@ -1,7 +1,30 @@
 <section class="feature-center">
   <div class="feature-card">
     <h2>Audit Log</h2>
-    <div class="skeleton-list"><div class="skeleton-row" *ngFor="let _ of [1,2,3,4]"></div></div>
-    <p class="muted">Eventos del sistema — Próximamente conectado a API.</p>
+
+    <div *ngIf="error" class="error">{{ error }}</div>
+
+    <div *ngIf="loading" class="skeleton-list"><div class="skeleton-row" *ngFor="let _ of [1,2,3,4]"></div></div>
+
+    <table *ngIf="!loading && logs.length" class="table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Actor</th>
+          <th>Acción</th>
+          <th>Payload</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs">
+          <td>{{ log.created_at | date:'medium' }}</td>
+          <td>{{ log.actor_username || 'system' }}</td>
+          <td>{{ log.action }}</td>
+          <td><pre>{{ log.payload_json | json }}</pre></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="muted" *ngIf="!loading && !logs.length">Sin eventos aún.</p>
   </div>
 </section>

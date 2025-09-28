@@ -7,6 +7,7 @@ import { WalletsComponent } from './features/wallets/wallets.component';
 import { TxsComponent }     from './features/txs/txs.component';
 import { BlocksComponent }  from './features/blocks/blocks.component';
 import { PriceComponent }   from './features/price/price.component';
+import { TradeComponent }   from './features/trade/trade.component';
 import { AuditComponent }   from './features/audit/audit.component';
 
 
@@ -19,6 +20,7 @@ export const routes: Routes = [
   { path: 'txs', component: TxsComponent, canActivate: [AuthGuard] },
   { path: 'blocks', component: BlocksComponent, canActivate: [AuthGuard] },
   { path: 'price', component: PriceComponent, canActivate: [AuthGuard] },
+  { path: 'trade', component: TradeComponent, canActivate: [AuthGuard] },
   { path: 'audit', component: AuditComponent, canActivate: [AuthGuard] },
   { path: '**', redirectTo: 'auth/login' }
 ];

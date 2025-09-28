@@ -24,8 +24,11 @@ export class RegisterComponent {
     this.loading = true; this.msg = 'Creando cuenta...';
     this.auth.register(this.username, this.email || null, this.password).subscribe({
       next: (data: any) => {
-        this.msg = `Usuario creado: ${data?.username || this.username}. Ahora inicia sesión.`;
-        setTimeout(() => this.router.navigate(['/auth/login']), 600);
+        this.msg = `¡Bienvenido ${data?.username || this.username}! Se creó tu wallet por defecto y acreditamos 5 SIM.`;
+        // Flag para mostrar aviso post-login
+        try { localStorage.setItem('welcomeCredit', '1'); } catch {}
+        // Enviar al login con redirect a dashboard y marca de bienvenida
+        setTimeout(() => this.router.navigate(['/auth/login'], { queryParams: { next: 'dashboard', welcome: 1 } }), 600);
       },
       error: (e: any) => {
         this.loading = false;

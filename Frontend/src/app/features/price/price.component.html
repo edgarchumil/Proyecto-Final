@@ -1,7 +1,37 @@
 <section class="feature-center">
   <div class="feature-card">
     <h2>Precio SIM/USD</h2>
-    <div class="skeleton-chart"></div>
-    <p class="muted" style="margin-top:12px">Serie temporal de PRICE_TICK — Próximamente.</p>
+
+    <!-- Simulación automática activa: se eliminan campos de entrada -->
+
+    <div *ngIf="error" class="error">{{ error }}</div>
+
+    <div class="chart-wrap">
+      <canvas id="priceChart"></canvas>
+      <div *ngIf="loading" class="skeleton-chart"></div>
+    </div>
+
+    <div class="table-header">
+      <div class="left small muted">Histórico de precios</div>
+      <button class="btn outline" type="button" (click)="showAll = !showAll" *ngIf="ticks.length > 10">
+        {{ showAll ? 'Mostrar menos' : 'Ver historial' }}
+      </button>
+    </div>
+
+    <div [class.table-scroll]="showAll">
+      <table *ngIf="!loading && visibleTicks.length" class="table">
+        <thead>
+          <tr><th>Fecha</th><th>Precio USD</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of visibleTicks">
+            <td>{{ t.ts | date:'medium' }}</td>
+            <td>{{ t.price_usd }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted" *ngIf="!loading && !ticks.length">No hay registros de precio todavía.</p>
   </div>
 </section>

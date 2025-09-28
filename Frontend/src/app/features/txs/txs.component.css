@@ -11,6 +11,70 @@
 }
 .feature-card h2{ margin:0 0 12px; }
 .muted{ opacity:.85; }
+.small{ font-size:12px; }
+
+.callout{
+  margin: 10px 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(59,130,246,.4);
+  background: rgba(59,130,246,.12);
+  color: #dbeafe;
+}
+
+.transfer{
+  display:grid;
+  gap:12px;
+  margin-bottom:18px;
+  background:rgba(15,23,42,.6);
+  padding:16px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.field{ display:flex; flex-direction:column; gap:6px; }
+.field label{ font-size:12px; text-transform:uppercase; opacity:.65; }
+.field select,
+.field input{
+  background:#0f172a;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  padding:10px;
+  color:#e5e7eb;
+}
+.field.double{ display:flex; gap:12px; }
+.field.double > div{ flex:1; display:flex; flex-direction:column; gap:6px; }
+
+.btn{ padding:10px 14px; border-radius:12px; border:1px solid rgba(34,197,94,.5); background:#22c55e; color:#0f172a; font-weight:600; align-self:flex-end; }
+
+.filters{
+  display:flex;
+  gap:16px;
+  margin-bottom:16px;
+}
+.filters .field{ flex:1; }
+
+.error{
+  background: rgba(248,113,113,.12);
+  border: 1px solid rgba(248,113,113,.4);
+  color:#fecaca;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:16px;
+}
+
+.success{
+  background: rgba(34,197,94,.12);
+  border: 1px solid rgba(34,197,94,.4);
+  color:#bbf7d0;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:16px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+.success .btn{ background:rgba(34,197,94,.2); border:1px solid rgba(34,197,94,.4); color:#22c55e; }
 
 .skeleton-list{ display:grid; gap:10px; }
 .skeleton-row{
@@ -19,3 +83,27 @@
   background-size:200% 100%; animation:shimmer 1.2s infinite;
 }
 @keyframes shimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8px;
+}
+.table th,
+.table td{
+  padding:10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  vertical-align:top;
+  text-align:left;
+}
+.status{
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+}
+.status.pending{ background:rgba(250,204,21,.2); color:#facc15; }
+.status.confirmed{ background:rgba(34,197,94,.2); color:#4ade80; }
+.status.failed{ background:rgba(248,113,113,.2); color:#f87171; }
+.btn[disabled]{ opacity:.6; cursor:not-allowed; }

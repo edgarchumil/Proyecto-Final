@@ -1,0 +1,70 @@
+<section class="feature-center">
+  <div class="feature-card">
+    <h2>Comercio (Buy / Sell)</h2>
+
+    <div class="toggle">
+      <button class="btn" [class.active]="side==='BUY'" (click)="side='BUY'">Comprar</button>
+      <button class="btn" [class.active]="side==='SELL'" (click)="side='SELL'">Vender</button>
+    </div>
+
+    <form class="trade" (submit)="$event.preventDefault(); submit();">
+      <div class="field">
+        <label><input type="checkbox" [(ngModel)]="useP2PRequest" name="useP2P" /> Usar solicitud P2P (notificación)</label>
+        <small class="muted">Genera un token y notifica a la contraparte para aprobación.</small>
+      </div>
+      <div class="field" *ngIf="useP2PRequest">
+        <label>Contraparte (usuario)</label>
+        <select [(ngModel)]="counterparty" name="counterparty">
+          <option [ngValue]="null">— Seleccionar usuario —</option>
+          <option *ngFor="let u of users" [ngValue]="u.id">@{{ u.username }} (#{{ u.id }})</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Wallet</label>
+        <select [(ngModel)]="form.wallet" name="wallet">
+          <option *ngFor="let w of wallets" [ngValue]="w.id">{{ w.name }} (#{{ w.id }})</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Método de pago</label>
+        <select [(ngModel)]="form.method" name="method">
+          <option value="BANK">Transferencia bancaria</option>
+          <option value="CARD">Tarjeta crédito/débito</option>
+          <option value="P2P">Comercio P2P</option>
+        </select>
+      </div>
+      <div class="field" *ngIf="form.method==='BANK'">
+        <label>Referencia bancaria</label>
+        <input type="text" [(ngModel)]="form.reference" name="bank_ref" placeholder="Nº operación o referencia" />
+      </div>
+      <div class="field" *ngIf="form.method==='CARD'">
+        <label>Últimos 4 de la tarjeta</label>
+        <input type="text" maxlength="4" [(ngModel)]="form.reference" name="card_last4" placeholder="1234" />
+      </div>
+      <div class="field" *ngIf="form.method==='P2P'">
+        <label>Usuario contraparte</label>
+        <input type="text" [(ngModel)]="form.reference" name="p2p_user" placeholder="@usuario" />
+      </div>
+      <div class="field">
+        <label>Monto (SIM)</label>
+        <input type="number" step="0.00000001" [(ngModel)]="form.amount" name="amount" />
+      </div>
+      <div class="field">
+        <label>Fee</label>
+        <input type="number" step="0.00000001" [(ngModel)]="form.fee" name="fee" />
+      </div>
+      <button class="btn primary" type="submit" [disabled]="loading">{{ loading ? 'Procesando…' : (useP2PRequest ? 'Enviar solicitud' : (side==='BUY' ? 'Comprar' : 'Vender')) }}</button>
+    </form>
+
+    <div *ngIf="success" class="success">
+      <div>
+        <strong>{{ useP2PRequest ? 'Solicitud enviada' : 'Orden registrada' }}</strong>
+        <div class="muted small">{{ useP2PRequest ? 'Token' : 'TX' }}: {{ success.id }} — {{ success.tx_hash | slice:0:12 }}…</div>
+        <div class="muted small">Método: {{ form.method }} {{ form.reference ? '(' + form.reference + ')' : '' }}</div>
+        <div class="muted small">Recuerda CONFIRMAR la transacción en "Transacciones" para que impacte los saldos.</div>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="error">{{ error }}</div>
+  </div>
+</section>

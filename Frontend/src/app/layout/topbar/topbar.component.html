@@ -16,11 +16,14 @@
 
     <!-- Navegación -->
     <nav class="nav" [class.open]="open" role="navigation" aria-label="Principal">
-      <a routerLink="/dashboard" routerLinkActive="active" (click)="close()">Dashboard</a>
+      <a *ngIf="!isAuthPage" routerLink="/dashboard" routerLinkActive="active" (click)="close()">Dashboard</a>
+      <a *ngIf="isLoggedIn" routerLink="/dashboard" class="notif-bell" [attr.aria-label]="'Notificaciones'" (click)="close()">
+        <span class="bell">🔔</span>
+        <span class="badge" *ngIf="notifCount > 0">{{ notifCount }}</span>
+      </a>
 
       <a *ngIf="!isLoggedIn" routerLink="/auth/login" routerLinkActive="active" (click)="close()">Ingresar</a>
       <a *ngIf="!isLoggedIn" routerLink="/auth/register" routerLinkActive="active" (click)="close()">Registro</a>
-
       <button *ngIf="isLoggedIn" class="btn danger" type="button" (click)="logout()">Salir</button>
     </nav>
   </div>

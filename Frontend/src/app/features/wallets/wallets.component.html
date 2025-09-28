@@ -1,8 +1,45 @@
 <section class="feature-center">
   <div class="feature-card">
     <h2>Wallets</h2>
-    <div class="tools"><button class="btn primary" disabled title="Próximamente">Nueva wallet</button></div>
-    <div class="skeleton-list"><div class="skeleton-row" *ngFor="let _ of [1,2,3,4]"></div></div>
-    <p class="muted">Listado de wallets — Próximamente conectado a API.</p>
+
+    <div *ngIf="showCta" class="callout">
+      <strong>¡Bienvenido!</strong> Crea tu primera wallet para comenzar.
+    </div>
+
+    <div *ngIf="created" class="success">
+      <div>
+        <strong>Wallet creada</strong>
+        <span *ngIf="createdFirst"> — Tu primera wallet está lista.</span>
+        <div class="muted small">Clave pública: <code>{{ created.pub_key }}</code></div>
+      </div>
+      <a [routerLink]="['/txs']" [queryParams]="{ from: created.id, pub: created.pub_key }" class="btn primary">Enviar</a>
+    </div>
+
+    <form class="tools" (submit)="$event.preventDefault(); create();">
+      <input type="text" placeholder="Nombre de la wallet" [(ngModel)]="name" name="name" />
+      <button class="btn primary" type="submit" [disabled]="loading || !name.trim()">Nueva wallet</button>
+    </form>
+
+    <div *ngIf="error" class="error">{{ error }}</div>
+
+    <div *ngIf="loading && !wallets.length" class="skeleton-list">
+      <div class="skeleton-row" *ngFor="let _ of [1,2,3,4]"></div>
+    </div>
+
+    <table *ngIf="!loading && wallets.length" class="table">
+      <thead>
+        <tr><th>Nombre</th><th>Clave Pública</th><th>Creada</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let w of wallets">
+          <td>{{ w.name }}</td>
+          <td><code>{{ w.pub_key }}</code></td>
+          <td>{{ w.created_at | date:'medium' }}</td>
+          <td class="right"><button class="btn" (click)="remove(w.id)">Eliminar</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="muted" *ngIf="!loading && !wallets.length">Aún no tienes wallets. Crea la primera.</p>
   </div>
 </section>

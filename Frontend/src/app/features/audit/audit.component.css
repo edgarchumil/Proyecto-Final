@@ -12,10 +12,25 @@
 .feature-card h2{ margin:0 0 12px; }
 .muted{ opacity:.85; }
 
-.skeleton-list{ display:grid; gap:10px; }
+.error{
+  background: rgba(248,113,113,.12);
+  border:1px solid rgba(248,113,113,.4);
+  color:#fecaca;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:16px;
+}
+
+.skeleton-list{ display:grid; gap:10px; margin-bottom:16px; }
 .skeleton-row{
   height:40px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
   background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.12),rgba(255,255,255,.06));
   background-size:200% 100%; animation:shimmer 1.2s infinite;
 }
+
+.table{ width:100%; border-collapse:collapse; }
+.table th,
+.table td{ padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; vertical-align:top; }
+.table pre{ margin:0; font-size:12px; background:rgba(15,23,42,.85); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,.05); }
+
 @keyframes shimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }

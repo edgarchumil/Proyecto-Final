@@ -1,108 +1,239 @@
 // src/app/dashboard/dashboard.component.ts
-import { Component, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { forkJoin, of, Subscription } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import {
   Chart,
   LineController, LineElement, PointElement,
-  LinearScale, Title, CategoryScale, Filler, Legend
+  LinearScale, Title, CategoryScale, Filler, Legend,
 } from 'chart.js';
+
+import { WalletService } from '../features/wallets/wallet.service';
+import type { Wallet } from '../features/wallets/wallet.service';
+import { TransactionsService } from '../features/txs/transactions.service';
+import type { Transaction } from '../features/txs/transactions.service';
+import { BlocksService } from '../features/blocks/blocks.service';
+import { PriceService } from '../features/price/price.service';
+import type { PriceTick } from '../features/price/price.service';
+import { AuditService } from '../features/audit/audit.service';
+import { TradeRequestsService } from '../features/trade/trade-requests.service';
+import type { TradeRequest } from '../features/trade/trade-requests.service';
+import { UsersService } from '../features/users/users.service';
+import type { AppUser } from '../features/users/users.service';
+
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Filler, Legend);
+
+interface WalletSummary {
+  wallet: Wallet;
+  balance: number;
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent implements AfterViewInit, OnDestroy {
-  // ----- Datos demo que ya tenías -----
-  prices: Record<string, number> = { BTC: 50000, ETH: 3000, DOGE: 0.25 };
-  saldo = 1000;
-  portfolio: Record<string, number> = { BTC: 0, ETH: 0, DOGE: 0 };
-  history: Array<{date:string,type:string,coin:string,amount:number,saldo:number}> = [];
-  selected = 'BTC';
-  amount: number | null = null;
-  chart?: Chart;
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+  private chart?: Chart;
+  private metricsSub?: Subscription;
+  private priceTimer?: any;
 
-  // ----- NUEVOS contadores/indicadores para las tiles del hub -----
   walletsCount: number | undefined;
   txCount: number | undefined;
   blockCount: number | undefined;
-  lastPrice: number | null = null;
   auditCount: number | undefined;
+  lastPrice: number | null = null;
+  priceChangePct: number | null = null;
+  holdingsUsd: number | null = null;
+  confirmedCount = 0;
+  pendingCount = 0;
+
+  walletSummaries: WalletSummary[] = [];
+  totalBalance = 0;
+  recentTransactions: Transaction[] = [];
+  priceSeries: PriceTick[] = [];
+  users: AppUser[] = [];
+  notifications: TradeRequest[] = [];
+
+  loadingMetrics = false;
+  welcomeBanner = false;
+
+  constructor(
+    private route: ActivatedRoute,
+    private walletsApi: WalletService,
+    private txsApi: TransactionsService,
+    private blocksApi: BlocksService,
+    private priceApi: PriceService,
+    private auditApi: AuditService,
+    public tradeReqApi: TradeRequestsService,
+    private usersApi: UsersService
+  ) {}
+
+  ngOnInit(): void {
+    // Banner de bienvenida: query param o localStorage flag
+    this.route.queryParamMap.subscribe(p => {
+      const w = p.get('welcome');
+      const local = (typeof localStorage !== 'undefined') ? localStorage.getItem('welcomeCredit') : null;
+      this.welcomeBanner = w === '1' || !!local;
+      if (this.welcomeBanner && typeof localStorage !== 'undefined') {
+        localStorage.removeItem('welcomeCredit');
+      }
+    });
+    this.loadMetrics();
+    // Auto-refresh de último precio cada 12s
+    this.priceTimer = setInterval(() => {
+      this.priceApi.latest().subscribe({
+        next: (t) => {
+          this.lastPrice = Number(t.price_usd);
+          this.holdingsUsd = this.lastPrice != null ? this.totalBalance * this.lastPrice : null;
+        },
+        error: () => {}
+      });
+    }, 12000);
+  }
 
   ngAfterViewInit(): void {
     this.renderChart();
-
-    // Mock inicial (luego lo reemplazas por llamadas a tu API)
-    setTimeout(() => {
-      this.walletsCount = 1;
-      this.txCount = this.history.length;
-      this.blockCount = 0;
-      this.lastPrice = 1.00;     // precio SIM/USD
-      this.auditCount = 0;
-    }, 300);
   }
 
-  ngOnDestroy(): void { this.chart?.destroy(); }
-
-  buy() {
-    const c = this.selected;
-    const a = Number(this.amount || 0);
-    if (!a || a <= 0) { alert('Ingresa una cantidad válida.'); return; }
-    const cost = a * this.prices[c];
-    if (this.saldo < cost) { alert('Saldo insuficiente.'); return; }
-    this.saldo -= cost;
-    this.portfolio[c] += a;
-    this.addTx('Compra', c, a);
-  }
-
-  sell() {
-    const c = this.selected;
-    const a = Number(this.amount || 0);
-    if (!a || a <= 0) { alert('Ingresa una cantidad válida.'); return; }
-    if (this.portfolio[c] < a) { alert('No tienes suficientes monedas.'); return; }
-    const gain = a * this.prices[c];
-    this.saldo += gain;
-    this.portfolio[c] -= a;
-    this.addTx('Venta', c, a);
-  }
-
-  private addTx(type: string, coin: string, amount: number) {
-    this.history.push({ date: new Date().toLocaleTimeString(), type, coin, amount, saldo: this.saldo });
-    this.renderChart();
-    // Actualiza contador de transacciones del hub
-    this.txCount = this.history.length;
-  }
-
-  private renderChart() {
-    const canvas = document.getElementById('activityChart') as HTMLCanvasElement | null;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const labels = this.history.map(h => h.date);
-    const data = this.history.map(h => h.saldo);
+  ngOnDestroy(): void {
     this.chart?.destroy();
-    this.chart = new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets: [{ label: 'Saldo', data, fill: true, tension: 0.3 }] },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: true } }
+    this.metricsSub?.unsubscribe();
+    if (this.priceTimer) clearInterval(this.priceTimer);
+  }
+
+  loadMetrics(): void {
+    this.loadingMetrics = true;
+    this.metricsSub?.unsubscribe();
+    this.metricsSub = forkJoin({
+      wallets: this.walletsApi.list().pipe(catchError(() => of([] as Wallet[]))),
+      txs: this.txsApi.list().pipe(catchError(() => of([] as Transaction[]))),
+      blocks: this.blocksApi.list().pipe(catchError(() => of([]))),
+      prices: this.priceApi.list().pipe(catchError(() => of([] as PriceTick[]))),
+      audit: this.auditApi.list().pipe(catchError(() => of([]))),
+      notices: this.tradeReqApi.list('incoming', 'PENDING').pipe(catchError(() => of([] as TradeRequest[]))),
+      users: this.usersApi.list().pipe(catchError(() => of([] as AppUser[])))
+    }).subscribe({
+      next: ({ wallets, txs, blocks, prices, audit, notices, users }) => {
+        this.walletsCount = wallets.length;
+        this.txsCountFromData(txs);
+        this.blockCount = blocks.length;
+        this.auditCount = audit.length;
+        this.users = users;
+        this.notifications = notices;
+
+        this.walletSummaries = this.buildWalletSummaries(wallets, txs);
+        this.totalBalance = this.walletSummaries.reduce((acc, item) => acc + item.balance, 0);
+
+        this.recentTransactions = [...txs]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 8);
+
+        this.priceSeries = [...prices]
+          .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+          .slice(-20);
+        // Mostrar último precio y cambio respecto al primero del rango cargado
+        const latest = prices[prices.length - 1];
+        const first = prices[0];
+        this.lastPrice = latest ? Number(latest.price_usd) : null;
+        this.priceChangePct = latest && first ? ((Number(latest.price_usd) - Number(first.price_usd)) / Number(first.price_usd)) * 100 : null;
+        this.holdingsUsd = this.lastPrice != null ? this.totalBalance * this.lastPrice : null;
+
+        this.loadingMetrics = false;
+        this.renderChart();
+      },
+      error: () => {
+        this.loadingMetrics = false;
       }
     });
   }
 
-  reset() {
-    this.saldo = 1000;
-    this.portfolio = { BTC: 0, ETH: 0, DOGE: 0 };
-    this.history = [];
-    this.renderChart();
-    this.txCount = 0;
+  private buildWalletSummaries(wallets: Wallet[], txs: Transaction[]): WalletSummary[] {
+    const balances = new Map<number, number>();
+    wallets.forEach(w => balances.set(w.id, 0));
+
+    this.confirmedCount = 0;
+    this.pendingCount = 0;
+
+    txs.forEach(tx => {
+      if (tx.status === 'CONFIRMED') {
+        this.confirmedCount += 1;
+        const fromBalance = balances.get(tx.from_wallet);
+        if (fromBalance !== undefined) {
+          balances.set(tx.from_wallet, fromBalance - (Number(tx.amount) + Number(tx.fee)));
+        }
+        const toBalance = balances.get(tx.to_wallet);
+        if (toBalance !== undefined) {
+          balances.set(tx.to_wallet, toBalance + Number(tx.amount));
+        }
+      } else if (tx.status === 'PENDING') {
+        this.pendingCount += 1;
+      }
+    });
+
+    return wallets.map(wallet => ({
+      wallet,
+      balance: balances.get(wallet.id) ?? 0
+    }));
+  }
+
+  private txsCountFromData(txs: Transaction[]): void {
+    this.txCount = txs.length;
+  }
+
+  private renderChart(): void {
+    const canvas = document.getElementById('activityChart') as HTMLCanvasElement | null;
+    if (!canvas) { return; }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { return; }
+
+    if (!this.priceSeries.length) {
+      this.chart?.destroy();
+      return;
+    }
+
+    const labels = this.priceSeries.map(t => new Date(t.ts).toLocaleString());
+    const data = this.priceSeries.map(t => Number(t.price_usd));
+
+    this.chart?.destroy();
+    this.chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'SIM / USD',
+          data,
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56,189,248,0.2)',
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true }
+        },
+        scales: {
+          y: { beginAtZero: false }
+        }
+      }
+    });
+  }
+
+  // Notificaciones P2P: helpers para botones del template
+  approveReq(id: number): void {
+    this.tradeReqApi.approve(id).subscribe({ next: () => this.loadMetrics() });
+  }
+
+  rejectReq(id: number): void {
+    this.tradeReqApi.reject(id).subscribe({ next: () => this.loadMetrics() });
   }
 }

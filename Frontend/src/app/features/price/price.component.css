@@ -12,10 +12,76 @@
 .feature-card h2{ margin:0 0 12px; }
 .muted{ opacity:.85; }
 
-/* “Esqueleto” del gráfico */
+.form{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap:12px;
+  margin-bottom:16px;
+  background:rgba(15,23,42,.6);
+  padding:16px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.field{ display:flex; flex-direction:column; gap:6px; }
+.field label{ font-size:12px; text-transform:uppercase; opacity:.65; }
+.field input{
+  background:#0f172a;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  padding:10px;
+  color:#e5e7eb;
+}
+.btn.primary{ justify-self:end; align-self:end; padding:10px 14px; border-radius:12px; border:1px solid rgba(56,189,248,.5); background:#38bdf8; color:#0f172a; font-weight:600; }
+.btn{ display:inline-flex; align-items:center; gap:6px; padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:#e5e7eb; cursor:pointer; transition: all .15s ease; }
+.btn.outline{ background:transparent; }
+.btn:hover{ border-color: rgba(255,255,255,.35); }
+
+.error{
+  background:rgba(248,113,113,.12);
+  border:1px solid rgba(248,113,113,.4);
+  color:#fecaca;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:16px;
+}
+
+.chart-wrap{
+  position:relative;
+  height:260px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.08);
+  margin-bottom:18px;
+  overflow:hidden;
+  background:#0f172a;
+}
+.chart-wrap canvas{ width:100%; height:100%; display:block; }
 .skeleton-chart{
-  height:220px; border-radius:16px; border:1px solid rgba(255,255,255,.08);
+  position:absolute; inset:0;
+  border-radius:16px;
   background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.12),rgba(255,255,255,.06));
   background-size:200% 100%; animation:shimmer 1.2s infinite;
 }
+
+.table{ width:100%; border-collapse:collapse; }
+.table th,
+.table td{ padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; }
+
+.table-header{ display:flex; justify-content:space-between; align-items:center; margin:8px 0; }
+.table-scroll{ max-height:260px; overflow:auto; border:1px solid rgba(255,255,255,.06); border-radius:12px; }
+
+/* Scrollbar específico del historial: más delgado y gris suave */
+.table-scroll{ scrollbar-width: thin; scrollbar-color: rgba(139,147,167,.9) rgba(18,24,38,.92); }
+.table-scroll::-webkit-scrollbar{ width:8px; height:8px; }
+.table-scroll::-webkit-scrollbar-track{
+  background: rgba(18,24,38,.92);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.table-scroll::-webkit-scrollbar-thumb{
+  background: rgba(139,147,167,.9);
+  border-radius: 10px;
+  border: 2px solid rgba(18,24,38,1);
+}
+.table-scroll::-webkit-scrollbar-thumb:hover{ background: rgba(170,178,196,1); }
+
 @keyframes shimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
