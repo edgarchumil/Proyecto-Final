@@ -24,7 +24,6 @@ class WalletViewSet(viewsets.ModelViewSet):
         return WalletCreateSerializer if self.action == 'create' else WalletSerializer
 
     def perform_create(self, serializer):
-        serializer.save()
         wallet = serializer.save()
         log_action(self.request.user, 'WALLET_CREATE', {'wallet_id': wallet.id, 'name': wallet.name})
 

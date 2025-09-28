@@ -2,7 +2,7 @@ import os, hashlib
 from decimal import Decimal
 from django.db import transaction as dbtx
 from rest_framework import serializers
-from .models import Transaction
+from .models import Transaction, TradeRequest
 from wallets.models import Wallet
 from blocks.models import Block
 
@@ -50,11 +50,17 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     from_wallet_name = serializers.CharField(source='from_wallet.name', read_only=True)
     to_wallet_name   = serializers.CharField(source='to_wallet.name', read_only=True)
+    from_user = serializers.IntegerField(source='from_wallet.user.id', read_only=True)
+    from_username = serializers.CharField(source='from_wallet.user.username', read_only=True)
+    to_user = serializers.IntegerField(source='to_wallet.user.id', read_only=True)
+    to_username = serializers.CharField(source='to_wallet.user.username', read_only=True)
 
     class Meta:
         model = Transaction
         fields = (
-            'id', 'from_wallet', 'from_wallet_name', 'to_wallet', 'to_wallet_name',
+            'id',
+            'from_wallet', 'from_wallet_name', 'from_user', 'from_username',
+            'to_wallet', 'to_wallet_name', 'to_user', 'to_username',
             'amount', 'fee', 'tx_hash', 'status', 'block', 'created_at'
         )
         read_only_fields = ('id', 'tx_hash', 'status', 'block', 'created_at')
@@ -87,3 +93,27 @@ class TransactionFailSerializer(serializers.ModelSerializer):
         instance.status = Transaction.STATUS_FAILED
         instance.save(update_fields=['status'])
         return instance
+
+
+class TradeRequestSerializer(serializers.ModelSerializer):
+    requester_username = serializers.CharField(source='requester.username', read_only=True)
+    counterparty_username = serializers.CharField(source='counterparty.username', read_only=True)
+
+    class Meta:
+        model = TradeRequest
+        fields = (
+            'id', 'token', 'side', 'amount', 'fee', 'status', 'created_at',
+            'requester', 'requester_username', 'counterparty', 'counterparty_username'
+        )
+        read_only_fields = ('id', 'token', 'status', 'created_at', 'requester')
+
+class TradeRequestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TradeRequest
+        fields = ('counterparty', 'side', 'amount', 'fee')
+
+    def create(self, validated_data):
+        import secrets
+        requester = self.context['request'].user
+        token = secrets.token_hex(16)
+        return TradeRequest.objects.create(requester=requester, token=token, **validated_data)

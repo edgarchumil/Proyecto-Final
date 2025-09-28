@@ -13,6 +13,8 @@ class BlockViewSet(viewsets.ModelViewSet):
     /api/blocks/mine/       POST alias de create (opcional)
     """
     queryset = Block.objects.all()
+    # Serializer por defecto para lecturas
+    serializer_class = BlockSerializer
     
     def create(self, request, *args, **kwargs):
         resp = super().create(request, *args, **kwargs)
@@ -23,19 +25,19 @@ class BlockViewSet(viewsets.ModelViewSet):
         })
         return resp
 
-        def get_permissions(self):
-            if self.action in ('list', 'retrieve'):
-                return [permissions.AllowAny()]
-            return [permissions.IsAuthenticated()]
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
-        def get_serializer_class(self):
-            return BlockCreateSerializer if self.action in ('create', 'mine') else BlockSerializer
+    def get_serializer_class(self):
+        return BlockCreateSerializer if self.action in ('create', 'mine') else BlockSerializer
 
-        @action(detail=False, methods=['post'])
-        def mine(self, request):
-            """Alias explícito para minado: recibe merkle_root y nonce."""
-            s = BlockCreateSerializer(data=request.data, context={'request': request})
-            if s.is_valid():
-                block = s.save()
-                return Response(BlockSerializer(block).data, status=status.HTTP_201_CREATED)
-            return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=False, methods=['post'])
+    def mine(self, request):
+        """Alias explícito para minado: recibe merkle_root y nonce."""
+        s = BlockCreateSerializer(data=request.data, context={'request': request})
+        if s.is_valid():
+            block = s.save()
+            return Response(BlockSerializer(block).data, status=status.HTTP_201_CREATED)
+        return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
