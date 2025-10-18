@@ -17,10 +17,47 @@
     <!-- Navegación -->
     <nav class="nav" [class.open]="open" role="navigation" aria-label="Principal">
       <a *ngIf="!isAuthPage" routerLink="/dashboard" routerLinkActive="active" (click)="close()">Dashboard</a>
-      <a *ngIf="isLoggedIn" routerLink="/dashboard" class="notif-bell" [attr.aria-label]="'Notificaciones'" (click)="close()">
-        <span class="bell">🔔</span>
-        <span class="badge" *ngIf="notifCount > 0">{{ notifCount }}</span>
-      </a>
+      <div *ngIf="isLoggedIn" class="notif-wrapper">
+        <a href="#"
+           class="notif-bell"
+           [attr.aria-label]="'Notificaciones'"
+           [attr.aria-expanded]="notifOpen ? 'true' : 'false'"
+           (click)="toggleNotifications($event)">
+          <span class="bell" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 1 0-12 0v5l-1.8 1.8A1 1 0 0 0 5 19h14a1 1 0 0 0 .7-1.7Z" />
+            </svg>
+          </span>
+          <span class="badge" *ngIf="notifCount > 0">{{ notifCount }}</span>
+        </a>
+        <div class="notif-panel" *ngIf="notifOpen" (click)="$event.stopPropagation()">
+          <header>
+            <span>Notificaciones</span>
+            <span class="notif-count muted" *ngIf="notifCount > 0">Pendientes: {{ notifCount }}</span>
+          </header>
+          <div class="notif-loading" *ngIf="loadingNotifs">Cargando…</div>
+          <ng-container *ngIf="!loadingNotifs">
+            <div class="notif-empty" *ngIf="!notifications.length">Sin notificaciones.</div>
+            <ul class="notif-list" *ngIf="notifications.length">
+              <li *ngFor="let item of notifications"
+                  class="notif-item"
+                  role="button"
+                  tabindex="0"
+                  (click)="openNotification(item, $event)"
+                  (keydown.enter)="openNotification(item, $event)">
+                <div class="notif-header">
+                  <span class="notif-title">{{ item.title }}</span>
+                  <span class="notif-badge" [ngClass]="item.statusClass">{{ item.statusLabel }}</span>
+                </div>
+                <div class="notif-detail">
+                  <span>{{ item.detail }}</span>
+                  <span class="notif-time">{{ item.createdAt | date:'short' }}</span>
+                </div>
+              </li>
+            </ul>
+          </ng-container>
+        </div>
+      </div>
 
       <a *ngIf="!isLoggedIn" routerLink="/auth/login" routerLinkActive="active" (click)="close()">Ingresar</a>
       <a *ngIf="!isLoggedIn" routerLink="/auth/register" routerLinkActive="active" (click)="close()">Registro</a>

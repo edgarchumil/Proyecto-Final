@@ -1,7 +1,7 @@
 <div class="exchange">
   <!-- Barra tipo ticker -->
   <div class="ticker">
-    <div class="pair">Tus fondos</div>
+    <div class="pair">{{ currentUsername ? (currentUsername + ' • fondos') : 'Tus fondos' }}</div>
     <div class="last">{{ totalBalance | number:'1.4-4' }} SIM</div>
     <div class="change">
       ≈ {{ holdingsUsd !== null ? (holdingsUsd | number:'1.2-2') : '—' }} USD
@@ -71,10 +71,10 @@
       <h3>Actividad</h3>
       <!-- Notificaciones: ahora se muestran como icono en el topbar -->
       <h4 class="sub">Transacciones recientes</h4>
-      <table *ngIf="recentTransactions.length" class="table compact">
+      <table *ngIf="visibleTransactions.length" class="table compact">
         <thead><tr><th>ID</th><th>Desde → Hacia</th><th>Monto</th><th>Estado</th></tr></thead>
         <tbody>
-          <tr *ngFor="let tx of recentTransactions">
+          <tr *ngFor="let tx of visibleTransactions">
             <td>#{{ tx.id }}</td>
             <td>
               <div>@{{ tx.from_username || '—' }} → @{{ tx.to_username || '—' }}</div>

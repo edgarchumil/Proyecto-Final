@@ -12,6 +12,7 @@ import {
   LinearScale, Title, CategoryScale, Filler, Legend,
 } from 'chart.js';
 
+import { AuthService } from '../core/auth.service';
 import { WalletService } from '../features/wallets/wallet.service';
 import type { Wallet } from '../features/wallets/wallet.service';
 import { TransactionsService } from '../features/txs/transactions.service';
@@ -42,7 +43,11 @@ interface WalletSummary {
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private chart?: Chart;
   private metricsSub?: Subscription;
-  private priceTimer?: any;
+  private priceTimer?: ReturnType<typeof setInterval>;
+  private txRotationTimer?: ReturnType<typeof setInterval>;
+  private txRotationIndex = 0;
+  private readonly txViewportSize = 3;
+  private meSub?: Subscription;
 
   walletsCount: number | undefined;
   txCount: number | undefined;
@@ -57,9 +62,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   walletSummaries: WalletSummary[] = [];
   totalBalance = 0;
   recentTransactions: Transaction[] = [];
+  visibleTransactions: Transaction[] = [];
   priceSeries: PriceTick[] = [];
   users: AppUser[] = [];
   notifications: TradeRequest[] = [];
+  currentUsername: string | null = null;
 
   loadingMetrics = false;
   welcomeBanner = false;
@@ -72,10 +79,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private priceApi: PriceService,
     private auditApi: AuditService,
     public tradeReqApi: TradeRequestsService,
-    private usersApi: UsersService
+    private usersApi: UsersService,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.loadCurrentUser();
     // Banner de bienvenida: query param o localStorage flag
     this.route.queryParamMap.subscribe(p => {
       const w = p.get('welcome');
@@ -106,6 +115,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.chart?.destroy();
     this.metricsSub?.unsubscribe();
     if (this.priceTimer) clearInterval(this.priceTimer);
+    if (this.txRotationTimer) clearInterval(this.txRotationTimer);
+    this.meSub?.unsubscribe();
   }
 
   loadMetrics(): void {
@@ -132,8 +143,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.totalBalance = this.walletSummaries.reduce((acc, item) => acc + item.balance, 0);
 
         this.recentTransactions = [...txs]
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 8);
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        this.setupTransactionViewport();
 
         this.priceSeries = [...prices]
           .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
@@ -235,5 +246,47 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   rejectReq(id: number): void {
     this.tradeReqApi.reject(id).subscribe({ next: () => this.loadMetrics() });
+  }
+
+  private setupTransactionViewport(): void {
+    if (this.txRotationTimer) {
+      clearInterval(this.txRotationTimer);
+      this.txRotationTimer = undefined;
+    }
+
+    if (!this.recentTransactions.length) {
+      this.visibleTransactions = [];
+      return;
+    }
+
+    const windowSize = Math.min(this.txViewportSize, this.recentTransactions.length);
+    this.txRotationIndex = 0;
+    this.applyTransactionWindow(this.txRotationIndex, windowSize);
+
+    if (this.recentTransactions.length <= windowSize) {
+      return;
+    }
+
+    this.txRotationTimer = setInterval(() => {
+      this.txRotationIndex = (this.txRotationIndex + 1) % this.recentTransactions.length;
+      this.applyTransactionWindow(this.txRotationIndex, windowSize);
+    }, 5000);
+  }
+
+  private applyTransactionWindow(startIndex: number, windowSize: number): void {
+    const slice: Transaction[] = [];
+    for (let offset = 0; offset < windowSize; offset += 1) {
+      const idx = (startIndex + offset) % this.recentTransactions.length;
+      slice.push(this.recentTransactions[idx]);
+    }
+    this.visibleTransactions = slice;
+  }
+
+  private loadCurrentUser(): void {
+    this.meSub?.unsubscribe();
+    this.meSub = this.auth.me().subscribe({
+      next: (me) => { this.currentUsername = me.username; },
+      error: () => { this.currentUsername = null; }
+    });
   }
 }
