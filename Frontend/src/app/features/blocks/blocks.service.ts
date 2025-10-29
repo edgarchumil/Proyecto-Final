@@ -18,6 +18,18 @@ export interface CreateBlockPayload {
   nonce: string;
 }
 
+export interface SimulateMiningResponse {
+  success: boolean;
+  message: string;
+  block_id: number;
+  reward_btc?: string;
+}
+
+export interface MiningSummary {
+  total_btc: string;
+  total_attempts: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BlocksService {
   private base = `${environment.apiUrl}/blocks/`;
@@ -30,5 +42,13 @@ export class BlocksService {
 
   create(payload: CreateBlockPayload): Observable<Block> {
     return this.http.post<Block>(this.base, payload);
+  }
+
+  simulateMining(blockId: number): Observable<SimulateMiningResponse> {
+    return this.http.post<SimulateMiningResponse>(`${this.base}${blockId}/simulate-mining/`, {});
+  }
+
+  miningSummary(): Observable<MiningSummary> {
+    return this.http.get<MiningSummary>(`${this.base}mining-summary/`);
   }
 }

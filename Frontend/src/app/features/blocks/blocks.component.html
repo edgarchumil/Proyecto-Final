@@ -1,6 +1,10 @@
 <section class="feature-center">
   <div class="feature-card">
     <h2>Bloques</h2>
+    <div class="mining-summary">
+      <span>BTC minado</span>
+      <strong>{{ totalMinedBtc | number:'1.0-2' }} BTC</strong>
+    </div>
 
     <form class="mine" (submit)="$event.preventDefault(); mine();">
       <div class="field">
@@ -21,6 +25,7 @@
       </div>
     </form>
 
+    <div *ngIf="infoMessage" class="success">{{ infoMessage }}</div>
     <div *ngIf="error" class="error">{{ error }}</div>
 
     <div *ngIf="loading" class="skeleton-list"><div class="skeleton-row" *ngFor="let _ of [1,2,3]"></div></div>
@@ -35,6 +40,7 @@
             <th>Merkle root</th>
             <th>Nonce</th>
             <th>Minado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -45,6 +51,11 @@
             <td><code>{{ b.merkle_root }}</code></td>
             <td><code>{{ b.nonce }}</code></td>
             <td>{{ b.mined_at | date:'medium' }}</td>
+            <td>
+              <button type="button" class="btn" (click)="simulateMining(b)" [disabled]="rowMiningId === b.id">
+                {{ rowMiningId === b.id ? 'Minando...' : 'Simular minado' }}
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>

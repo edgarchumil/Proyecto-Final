@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgFor, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { BlocksService, Block } from './blocks.service';
+import { Subscription } from 'rxjs';
+import { BlocksService, Block, MiningSummary } from './blocks.service';
 
 @Component({
   selector: 'app-blocks',
@@ -15,19 +16,26 @@ export class BlocksComponent implements OnInit, OnDestroy {
   blocks: Block[] = [];
   loading = false;
   error: string | null = null;
+  infoMessage: string | null = null;
 
   merkle = '';
   nonce = '';
   currentHash = '';
   mining = false;
+  rowMiningId: number | null = null;
+  totalMinedBtc = 0;
+  minedAttempts = 0;
+  private summarySub?: Subscription;
 
   constructor(private service: BlocksService) {}
 
   ngOnInit(): void {
     this.refresh();
+    this.loadMiningSummary();
   }
 
   ngOnDestroy(): void {
+    this.summarySub?.unsubscribe();
   }
 
   refresh(): void {
@@ -52,6 +60,7 @@ export class BlocksComponent implements OnInit, OnDestroy {
       return;
     }
     this.error = null;
+    this.infoMessage = null;
     this.mining = true;
     this.service.create({ merkle_root: this.merkle.trim(), nonce: this.nonce.trim() }).subscribe({
       next: () => {
@@ -73,6 +82,62 @@ export class BlocksComponent implements OnInit, OnDestroy {
         this.mining = false;
       }
     });
+  }
+
+  simulateMining(block: Block): void {
+    if (this.rowMiningId !== null) { return; }
+    this.error = null;
+    this.infoMessage = null;
+    this.rowMiningId = block.id;
+    this.service.simulateMining(block.id).subscribe({
+      next: (res) => {
+        this.rowMiningId = null;
+        if (res.success) {
+          this.blocks = this.blocks.filter(b => b.id !== block.id);
+          const baseMessage = res.message || `Bloque #${block.height} minado.`;
+          this.infoMessage = baseMessage;
+          this.loadMiningSummary(baseMessage);
+        } else {
+          this.blocks = this.blocks.filter(b => b.id !== block.id);
+          this.error = res.message || `Imposible minar el bloque #${block.height}.`;
+          this.loadMiningSummary();
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.rowMiningId = null;
+        if (err?.status === 401) {
+          this.error = 'Debes iniciar sesión para minar bloques.';
+        } else {
+          this.error = 'No se pudo simular el minado.';
+        }
+      }
+    });
+  }
+
+  private loadMiningSummary(message?: string): void {
+    this.summarySub?.unsubscribe();
+    this.summarySub = this.service.miningSummary().subscribe({
+      next: (summary: MiningSummary) => {
+        this.totalMinedBtc = this.parseBtc(summary.total_btc);
+        this.minedAttempts = summary.total_attempts ?? 0;
+        if (message) {
+          this.infoMessage = `${message} · Total acumulado: ${this.totalMinedBtc.toFixed(2)} BTC`;
+        }
+      },
+      error: () => {
+        if (message) {
+          this.infoMessage = message;
+        }
+      }
+    });
+  }
+
+  private parseBtc(value: unknown): number {
+    const num = Number(value ?? 0);
+    if (!Number.isFinite(num)) {
+      return 0;
+    }
+    return Math.round(num * 1e2) / 1e2;
   }
 
   randomFill(): void {

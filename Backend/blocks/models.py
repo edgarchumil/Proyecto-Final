@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 import hashlib
 
 class Block(models.Model):
@@ -27,3 +28,17 @@ class Block(models.Model):
     @property
     def hash(self) -> str:
         return hashlib.sha256(self.header.encode('utf-8')).hexdigest()
+
+
+class MiningReward(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='mining_rewards')
+    block_height = models.PositiveBigIntegerField()
+    block_hash = models.CharField(max_length=64)
+    amount_btc = models.DecimalField(max_digits=18, decimal_places=8)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user_id} → {self.amount_btc} BTC (#{self.block_height})'

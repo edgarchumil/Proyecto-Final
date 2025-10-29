@@ -17,7 +17,7 @@ import { WalletService } from '../features/wallets/wallet.service';
 import type { Wallet } from '../features/wallets/wallet.service';
 import { TransactionsService } from '../features/txs/transactions.service';
 import type { Transaction } from '../features/txs/transactions.service';
-import { BlocksService } from '../features/blocks/blocks.service';
+import { BlocksService, MiningSummary } from '../features/blocks/blocks.service';
 import { PriceService } from '../features/price/price.service';
 import type { PriceTick } from '../features/price/price.service';
 import { AuditService } from '../features/audit/audit.service';
@@ -64,6 +64,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   walletSummaries: WalletSummary[] = [];
   visibleWallets: WalletSummary[] = [];
   totalBalance = 0;
+  totalMinedBtc = 0;
+  minedAttempts = 0;
   recentTransactions: Transaction[] = [];
   visibleTransactions: Transaction[] = [];
   priceSeries: PriceTick[] = [];
@@ -132,11 +134,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       wallets: this.walletsApi.list().pipe(catchError(() => of([] as Wallet[]))),
       txs: this.txsApi.list().pipe(catchError(() => of([] as Transaction[]))),
       blocks: this.blocksApi.list().pipe(catchError(() => of([]))),
+      mining: this.blocksApi.miningSummary().pipe(catchError(() => of({ total_btc: '0', total_attempts: 0 } as MiningSummary))),
       prices: this.priceApi.list().pipe(catchError(() => of([] as PriceTick[]))),
       audit: this.auditApi.list().pipe(catchError(() => of([]))),
       notices: this.tradeReqApi.list('incoming', 'PENDING').pipe(catchError(() => of([] as TradeRequest[])))
     }).subscribe({
-      next: ({ wallets, txs, blocks, prices, audit, notices }) => {
+      next: ({ wallets, txs, blocks, mining, prices, audit, notices }) => {
         this.walletsCount = wallets.length;
         this.txsCountFromData(txs);
         this.blockCount = blocks.length;
@@ -145,6 +148,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
         this.walletSummaries = this.buildWalletSummaries(wallets, txs);
         this.totalBalance = this.round2(this.walletSummaries.reduce((acc, item) => acc + item.balance, 0));
+        this.totalMinedBtc = this.roundBtc(mining?.total_btc ?? 0);
+        this.minedAttempts = mining?.total_attempts ?? 0;
         this.setupWalletViewport();
 
         this.recentTransactions = [...txs]
@@ -342,5 +347,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private round2(value: number): number {
     return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private roundBtc(value: unknown): number {
+    const num = Number(value ?? 0);
+    if (!Number.isFinite(num)) {
+      return 0;
+    }
+    return Math.round((num + Number.EPSILON) * 100) / 100;
   }
 }

@@ -25,6 +25,7 @@
 .ticker .change { font-weight:600; }
 .ticker .change.up { color:#22c55e; }
 .ticker .change.down { color:#ef4444; }
+.ticker .btc { font-weight:600; color:#facc15; white-space:nowrap; }
 .ticker .refresh { margin-left:auto; }
 
 .card {
