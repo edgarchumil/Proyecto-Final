@@ -34,7 +34,7 @@ export class TxsComponent implements OnInit, OnDestroy {
     to_wallet: null as number | null,
     to_user: null as number | null,
     amount: 0,
-    fee: 0.001,
+    fee: 0,
   };
 
   statusFilter = 'ALL';
@@ -139,13 +139,13 @@ export class TxsComponent implements OnInit, OnDestroy {
       if (toWallet === this.form.from_wallet) { this.error = 'La wallet destino debe ser distinta a la emisora.'; return; }
     }
 
-    const amount = Number(this.form.amount);
+    const amount = this.round2(Number(this.form.amount));
     if (!Number.isFinite(amount) || amount <= 0) {
       this.error = 'El monto debe ser mayor a cero.';
       return;
     }
 
-    const fee = Number(this.form.fee);
+    const fee = this.round2(Number(this.form.fee));
     if (!Number.isFinite(fee) || fee < 0) {
       this.error = 'La comisión no puede ser negativa.';
       return;
@@ -167,7 +167,7 @@ export class TxsComponent implements OnInit, OnDestroy {
       next: (tx) => {
         this.form.to_wallet = null;
         this.form.amount = 0;
-        this.form.fee = 0.001;
+        this.form.fee = 0;
         this.success = tx;
         this.fetch();
         this.sending = false;
@@ -202,4 +202,11 @@ export class TxsComponent implements OnInit, OnDestroy {
   applyFilters(): void { this.fetch(); }
 
   dismissSuccess(): void { this.success = null; }
+
+  private round2(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
 }

@@ -11,44 +11,55 @@ import { AuthService } from './core/auth.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private onBeforeUnload = (e: BeforeUnloadEvent) => {
-    // cierra sesión al cerrar/recargar la pestaña/ventana
-    this.auth.silentLogout();
-  };
-
-  private onPageHide = () => {
-    // iOS/Safari/Firefox disparan pagehide al cerrar
-    this.auth.silentLogout();
-  };
+  private readonly tabId: string;
 
   private onStorage = (e: StorageEvent) => {
-    // si otra pestaña borra tokens, reflejar aquí
-    if (e.storageArea === localStorage && (e.key === 'access' || e.key === 'refresh')) {
-      if (!localStorage.getItem('access')) {
+    if (e.storageArea !== localStorage) {
+      return;
+    }
+    if (e.key === 'activeTabId') {
+      if (e.newValue && e.newValue !== this.tabId && this.auth.isAuthenticated()) {
         this.auth.silentLogout();
         this.router.navigate(['/auth/login']);
       }
+      return;
+    }
+    if ((e.key === 'access' || e.key === 'refresh') && !localStorage.getItem('access')) {
+      this.auth.silentLogout();
+      this.router.navigate(['/auth/login']);
     }
   };
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router) {
+    this.tabId = this.ensureTabId();
+  }
 
   ngOnInit(): void {
-    // 1) al entrar al sitio, siempre limpiar y exigir login
-    this.auth.forceFreshLogin();
-    this.router.navigate(['/auth/login']);
-
-    // 2) listeners para cerrar sesión al cerrar/recargar
-    window.addEventListener('beforeunload', this.onBeforeUnload);
-    window.addEventListener('pagehide', this.onPageHide);
-
-    // 3) sincronizar entre pestañas
+    const activeOwner = localStorage.getItem('activeTabId');
+    if (this.auth.isAuthenticated()) {
+      if (!activeOwner) {
+        localStorage.setItem('activeTabId', this.tabId);
+      } else if (activeOwner !== this.tabId) {
+        this.auth.forceFreshLogin();
+        this.router.navigate(['/auth/login']);
+      }
+    }
     window.addEventListener('storage', this.onStorage);
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('beforeunload', this.onBeforeUnload);
-    window.removeEventListener('pagehide', this.onPageHide);
     window.removeEventListener('storage', this.onStorage);
+  }
+
+  private ensureTabId(): string {
+    const existing = sessionStorage.getItem('tabId');
+    if (existing) {
+      return existing;
+    }
+    const newId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? (crypto.randomUUID as () => string)()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem('tabId', newId);
+    return newId;
   }
 }

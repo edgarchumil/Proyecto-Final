@@ -15,6 +15,7 @@ export interface Transaction {
   to_username?: string;
   amount: string;
   fee: string;
+  currency?: string;
   tx_hash: string;
   status: 'PENDING' | 'CONFIRMED' | 'FAILED';
   block: number | null;

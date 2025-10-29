@@ -26,7 +26,7 @@
         <tbody>
           <tr *ngFor="let t of visibleTicks">
             <td>{{ t.ts | date:'medium' }}</td>
-            <td>{{ t.price_usd }}</td>
+            <td>{{ t.price_usd | number:'1.2-2' }}</td>
           </tr>
         </tbody>
       </table>

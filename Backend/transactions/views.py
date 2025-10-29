@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.contrib.auth.models import User
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 import secrets
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
@@ -140,7 +140,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         """Compra SIM: el exchange envía a tu wallet. Body: { wallet, amount, fee?, method?, reference? }"""
         wallet_id = request.data.get('wallet')
         amount = request.data.get('amount')
-        fee = request.data.get('fee', '0.001')
+        fee = request.data.get('fee', '0.00')
         method = (request.data.get('method') or 'BANK').upper()
         if method not in ('BANK', 'CARD', 'P2P'):
             method = 'BANK'
@@ -149,8 +149,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'wallet y amount son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             wallet = Wallet.objects.get(id=wallet_id, user=request.user)
-            amount_d = Decimal(str(amount))
-            fee_d = Decimal(str(fee))
+            amount_d = Decimal(str(amount)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+            fee_d = Decimal(str(fee)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
         except Wallet.DoesNotExist:
             return Response({'detail': 'Wallet inválida.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
@@ -166,7 +166,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
         s = TransactionCreateSerializer(data=payload)
         s.is_valid(raise_exception=True)
         tx = s.save()
-        log_action(request.user, 'TRADE_BUY', {'tx_id': tx.id, 'amount': str(amount_d), 'method': method, 'reference': reference})
+        log_action(request.user, 'TRADE_BUY', {
+            'tx_id': tx.id,
+            'amount': format(amount_d, '.2f'),
+            'method': method,
+            'reference': reference
+        })
         return Response(TransactionSerializer(tx).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])
@@ -174,7 +179,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         """Vende SIM: tu wallet envía al exchange. Body: { wallet, amount, fee?, method?, reference? }"""
         wallet_id = request.data.get('wallet')
         amount = request.data.get('amount')
-        fee = request.data.get('fee', '0.001')
+        fee = request.data.get('fee', '0.00')
         method = (request.data.get('method') or 'BANK').upper()
         if method not in ('BANK', 'CARD', 'P2P'):
             method = 'BANK'
@@ -183,8 +188,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'wallet y amount son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             wallet = Wallet.objects.get(id=wallet_id, user=request.user)
-            amount_d = Decimal(str(amount))
-            fee_d = Decimal(str(fee))
+            amount_d = Decimal(str(amount)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+            fee_d = Decimal(str(fee)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
         except Wallet.DoesNotExist:
             return Response({'detail': 'Wallet inválida.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
@@ -200,7 +205,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
         s = TransactionCreateSerializer(data=payload)
         s.is_valid(raise_exception=True)
         tx = s.save()
-        log_action(request.user, 'TRADE_SELL', {'tx_id': tx.id, 'amount': str(amount_d), 'method': method, 'reference': reference})
+        log_action(request.user, 'TRADE_SELL', {
+            'tx_id': tx.id,
+            'amount': format(amount_d, '.2f'),
+            'method': method,
+            'reference': reference
+        })
         return Response(TransactionSerializer(tx).data, status=status.HTTP_201_CREATED)
 
 from django.db import models
@@ -270,3 +280,4 @@ class TradeRequestViewSet(viewsets.ModelViewSet):
         tr.save(update_fields=['status'])
         log_action(request.user, 'TRADE_REQUEST_REJECT', {'request_id': tr.id})
         return Response(TradeRequestSerializer(tr).data)
+TWOPLACES = Decimal('0.01')

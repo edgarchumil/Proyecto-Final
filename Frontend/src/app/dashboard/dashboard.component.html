@@ -2,7 +2,7 @@
   <!-- Barra tipo ticker -->
   <div class="ticker">
     <div class="pair">{{ currentUsername ? (currentUsername + ' • fondos') : 'Tus fondos' }}</div>
-    <div class="last">{{ totalBalance | number:'1.4-4' }} SIM</div>
+    <div class="last">{{ totalBalance | number:'1.2-2' }} SIM</div>
     <div class="change">
       ≈ {{ holdingsUsd !== null ? (holdingsUsd | number:'1.2-2') : '—' }} USD
     </div>
@@ -22,23 +22,24 @@
     <section class="panel account">
       <h3>Cuenta</h3>
       <div class="kpis">
-        <div class="kpi"><span>Saldo confirmado</span><strong>{{ totalBalance | number:'1.4-4' }} SIM</strong></div>
+        <div class="kpi"><span>Saldo confirmado</span><strong>{{ totalBalance | number:'1.2-2' }} SIM</strong></div>
         <div class="kpi"><span>Wallets</span><strong>{{ walletsCount ?? 0 }}</strong></div>
         <div class="kpi"><span>Tx pend.</span><strong>{{ pendingCount }}</strong></div>
         <div class="kpi"><span>Tx conf.</span><strong>{{ confirmedCount }}</strong></div>
       </div>
       <div class="assets">
-        <table *ngIf="walletSummaries.length" class="table compact">
+        <div class="wallets-table" *ngIf="visibleWallets.length">
+          <table class="table compact">
           <thead><tr><th>Wallet</th><th>Balance</th></tr></thead>
           <tbody>
-            <tr *ngFor="let item of walletSummaries">
+            <tr *ngFor="let item of visibleWallets">
               <td>{{ item.wallet.name }} (#{{ item.wallet.id }})</td>
-              <td>{{ item.balance | number:'1.4-4' }}</td>
+              <td>{{ item.balance | number:'1.2-2' }}</td>
             </tr>
           </tbody>
-        </table>
-        <p class="muted" *ngIf="!walletSummaries.length">Sin wallets. Crea una en Wallets.</p>
-        <a class="btn wfull" routerLink="/wallets">Ir a Wallets</a>
+          </table>
+        </div>
+        <p class="muted" *ngIf="!visibleWallets.length">Sin wallets. Crea una en Wallets.</p>
       </div>
     </section>
 
@@ -47,7 +48,7 @@
       <div class="panel__header">
         <h3>SIM / USD</h3>
         <div class="price-inline">
-          <strong>{{ lastPrice ? (lastPrice | number:'1.2-6') : '—' }}</strong>
+          <strong>{{ lastPrice ? (lastPrice | number:'1.2-2') : '—' }}</strong>
           <span class="pill" [class.success]="(priceChangePct||0) >= 0" [class.danger]="(priceChangePct||0) < 0">
             {{ priceChangePct !== null ? (priceChangePct | number:'1.2-2') + '%' : '—' }}
           </span>
@@ -57,12 +58,6 @@
         <canvas id="activityChart"></canvas>
         <div class="skeleton" *ngIf="loadingMetrics && !priceSeries.length"></div>
       </div>
-      <div class="quick-actions">
-        <a class="btn primary" routerLink="/txs">Nueva transacción</a>
-        <a class="btn" routerLink="/blocks">Minar bloque</a>
-        <a class="btn outline" routerLink="/price">Precio</a>
-        <a class="btn outline" routerLink="/audit">Audit</a>
-      </div>
       <p class="muted" *ngIf="!priceSeries.length">Registra precios para ver el gráfico.</p>
     </section>
 
@@ -71,35 +66,23 @@
       <h3>Actividad</h3>
       <!-- Notificaciones: ahora se muestran como icono en el topbar -->
       <h4 class="sub">Transacciones recientes</h4>
-      <table *ngIf="visibleTransactions.length" class="table compact">
-        <thead><tr><th>ID</th><th>Desde → Hacia</th><th>Monto</th><th>Estado</th></tr></thead>
+      <table *ngIf="visibleTransactions.length" class="table compact tx-table">
+        <thead><tr><th>Desde → Hacia</th><th>Monto</th><th>Estado</th></tr></thead>
         <tbody>
           <tr *ngFor="let tx of visibleTransactions">
-            <td>#{{ tx.id }}</td>
-            <td>
-              <div>@{{ tx.from_username || '—' }} → @{{ tx.to_username || '—' }}</div>
-              <small class="muted">{{ tx.from_wallet_name }} → {{ tx.to_wallet_name }}</small>
+            <td class="tx-cell tx-parties">
+              <div class="tx-line primary">@{{ tx.from_username || '—' }} → @{{ tx.to_username || '—' }}</div>
+              <div class="tx-line secondary">{{ tx.from_wallet_name }} → {{ tx.to_wallet_name }}</div>
             </td>
-            <td>{{ tx.amount }}</td>
-            <td><span class="status" [class.pending]="tx.status==='PENDING'" [class.confirmed]="tx.status==='CONFIRMED'" [class.failed]="tx.status==='FAILED'">{{ tx.status }}</span></td>
+            <td class="tx-cell tx-amount">
+              {{ tx.amount | number:'1.2-2' }}
+              <span class="muted currency">{{ tx.currency || 'SIM' }}</span>
+            </td>
+            <td class="tx-cell tx-status"><span class="status" [class.pending]="tx.status==='PENDING'" [class.confirmed]="tx.status==='CONFIRMED'" [class.failed]="tx.status==='FAILED'">{{ tx.status }}</span></td>
           </tr>
         </tbody>
       </table>
       <p class="muted" *ngIf="!recentTransactions.length">Sin actividad aún.</p>
-
-      
-
-      <h4 class="sub">Usuarios</h4>
-      <table *ngIf="users.length" class="table compact">
-        <thead><tr><th>ID</th><th>Usuario</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let u of users">
-            <td>{{ u.id }}</td>
-            <td>{{ u.username }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p class="muted" *ngIf="!users.length">Sin usuarios registrados.</p>
     </section>
   </div>
 

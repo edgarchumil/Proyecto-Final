@@ -181,7 +181,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
               refId: tx.id,
               createdAt: tx.created_at,
               title,
-              detail: `${fromUser} → tú · ${tx.amount} SIM`,
+              detail: `${fromUser} → tú · ${this.formatAmount(tx.amount)} SIM`,
               statusLabel: status === 'pending' ? 'Pendiente' : status === 'confirmed' ? 'Confirmada' : 'Fallida',
               statusClass: status as NotificationItem['statusClass']
             };
@@ -193,7 +193,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
             refId: req.id,
             createdAt: req.created_at,
             title: `Solicitud P2P: @${req.requester_username} ${action}`,
-            detail: `${req.amount} SIM · Fee ${req.fee}`,
+            detail: `${this.formatAmount(req.amount)} SIM · Fee ${this.formatAmount(req.fee)}`,
             statusLabel: 'Solicitud',
             statusClass: 'request'
           };
@@ -237,5 +237,13 @@ export class TopbarComponent implements OnInit, OnDestroy {
       clearInterval(this.notifTimer);
       this.notifTimer = undefined;
     }
+  }
+
+  private formatAmount(value: unknown): string {
+    const num = Number(value ?? 0);
+    if (!Number.isFinite(num)) {
+      return '0.00';
+    }
+    return (Math.round((num + Number.EPSILON) * 100) / 100).toFixed(2);
   }
 }

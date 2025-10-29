@@ -22,8 +22,8 @@ class Transaction(models.Model):
         related_name='tx_as_receiver'
     )
 
-    amount = models.DecimalField(max_digits=28, decimal_places=8, default=Decimal('0'))
-    fee    = models.DecimalField(max_digits=28, decimal_places=8, default=Decimal('0'))
+    amount = models.DecimalField(max_digits=28, decimal_places=2, default=Decimal('0'))
+    fee    = models.DecimalField(max_digits=28, decimal_places=2, default=Decimal('0'))
 
     tx_hash = models.CharField(max_length=64, unique=True, db_index=True)
     status  = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -71,8 +71,8 @@ class TradeRequest(models.Model):
     requester = models.ForeignKey(User, on_delete=models.CASCADE, related_name='trade_requests_made')
     counterparty = models.ForeignKey(User, on_delete=models.CASCADE, related_name='trade_requests_received')
     side = models.CharField(max_length=4, choices=SIDE_CHOICES)
-    amount = models.DecimalField(max_digits=28, decimal_places=8)
-    fee = models.DecimalField(max_digits=28, decimal_places=8, default=0)
+    amount = models.DecimalField(max_digits=28, decimal_places=2)
+    fee = models.DecimalField(max_digits=28, decimal_places=2, default=Decimal('0'))
     token = models.CharField(max_length=64, unique=True, db_index=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)

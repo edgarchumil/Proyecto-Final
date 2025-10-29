@@ -23,8 +23,6 @@ import type { PriceTick } from '../features/price/price.service';
 import { AuditService } from '../features/audit/audit.service';
 import { TradeRequestsService } from '../features/trade/trade-requests.service';
 import type { TradeRequest } from '../features/trade/trade-requests.service';
-import { UsersService } from '../features/users/users.service';
-import type { AppUser } from '../features/users/users.service';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Filler, Legend);
 
@@ -47,6 +45,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private txRotationTimer?: ReturnType<typeof setInterval>;
   private txRotationIndex = 0;
   private readonly txViewportSize = 3;
+  walletViewportSize = 3;
+  private walletRotationTimer?: ReturnType<typeof setInterval>;
+  private walletRotationIndex = 0;
   private meSub?: Subscription;
 
   walletsCount: number | undefined;
@@ -60,11 +61,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   pendingCount = 0;
 
   walletSummaries: WalletSummary[] = [];
+  visibleWallets: WalletSummary[] = [];
   totalBalance = 0;
   recentTransactions: Transaction[] = [];
   visibleTransactions: Transaction[] = [];
   priceSeries: PriceTick[] = [];
-  users: AppUser[] = [];
   notifications: TradeRequest[] = [];
   currentUsername: string | null = null;
 
@@ -79,7 +80,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private priceApi: PriceService,
     private auditApi: AuditService,
     public tradeReqApi: TradeRequestsService,
-    private usersApi: UsersService,
     private auth: AuthService
   ) {}
 
@@ -99,8 +99,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.priceTimer = setInterval(() => {
       this.priceApi.latest().subscribe({
         next: (t) => {
-          this.lastPrice = Number(t.price_usd);
-          this.holdingsUsd = this.lastPrice != null ? this.totalBalance * this.lastPrice : null;
+          this.lastPrice = this.round2(Number(t.price_usd));
+          this.holdingsUsd = this.lastPrice != null ? this.round2(this.totalBalance * this.lastPrice) : null;
         },
         error: () => {}
       });
@@ -116,6 +116,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.metricsSub?.unsubscribe();
     if (this.priceTimer) clearInterval(this.priceTimer);
     if (this.txRotationTimer) clearInterval(this.txRotationTimer);
+    if (this.walletRotationTimer) clearInterval(this.walletRotationTimer);
     this.meSub?.unsubscribe();
   }
 
@@ -128,19 +129,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       blocks: this.blocksApi.list().pipe(catchError(() => of([]))),
       prices: this.priceApi.list().pipe(catchError(() => of([] as PriceTick[]))),
       audit: this.auditApi.list().pipe(catchError(() => of([]))),
-      notices: this.tradeReqApi.list('incoming', 'PENDING').pipe(catchError(() => of([] as TradeRequest[]))),
-      users: this.usersApi.list().pipe(catchError(() => of([] as AppUser[])))
+      notices: this.tradeReqApi.list('incoming', 'PENDING').pipe(catchError(() => of([] as TradeRequest[])))
     }).subscribe({
-      next: ({ wallets, txs, blocks, prices, audit, notices, users }) => {
+      next: ({ wallets, txs, blocks, prices, audit, notices }) => {
         this.walletsCount = wallets.length;
         this.txsCountFromData(txs);
         this.blockCount = blocks.length;
         this.auditCount = audit.length;
-        this.users = users;
         this.notifications = notices;
 
         this.walletSummaries = this.buildWalletSummaries(wallets, txs);
-        this.totalBalance = this.walletSummaries.reduce((acc, item) => acc + item.balance, 0);
+        this.totalBalance = this.round2(this.walletSummaries.reduce((acc, item) => acc + item.balance, 0));
+        this.setupWalletViewport();
 
         this.recentTransactions = [...txs]
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -152,9 +152,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         // Mostrar último precio y cambio respecto al primero del rango cargado
         const latest = prices[prices.length - 1];
         const first = prices[0];
-        this.lastPrice = latest ? Number(latest.price_usd) : null;
-        this.priceChangePct = latest && first ? ((Number(latest.price_usd) - Number(first.price_usd)) / Number(first.price_usd)) * 100 : null;
-        this.holdingsUsd = this.lastPrice != null ? this.totalBalance * this.lastPrice : null;
+        const latestPrice = latest ? this.round2(Number(latest.price_usd)) : null;
+        const firstPrice = first ? this.round2(Number(first.price_usd)) : null;
+        this.lastPrice = latestPrice;
+        this.priceChangePct = (latestPrice !== null && firstPrice && firstPrice !== 0)
+          ? this.round2(((latestPrice - firstPrice) / firstPrice) * 100)
+          : null;
+        this.holdingsUsd = this.lastPrice != null ? this.round2(this.totalBalance * this.lastPrice) : null;
 
         this.loadingMetrics = false;
         this.renderChart();
@@ -175,14 +179,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     txs.forEach(tx => {
       if (tx.status === 'CONFIRMED') {
         this.confirmedCount += 1;
-        const fromBalance = balances.get(tx.from_wallet);
-        if (fromBalance !== undefined) {
-          balances.set(tx.from_wallet, fromBalance - (Number(tx.amount) + Number(tx.fee)));
-        }
-        const toBalance = balances.get(tx.to_wallet);
-        if (toBalance !== undefined) {
-          balances.set(tx.to_wallet, toBalance + Number(tx.amount));
-        }
+        const amountCents = this.toCents(tx.amount);
+        const feeCents = this.toCents(tx.fee);
+        const fromBalance = balances.get(tx.from_wallet) ?? 0;
+        balances.set(tx.from_wallet, fromBalance - (amountCents + feeCents));
+        const toBalance = balances.get(tx.to_wallet) ?? 0;
+        balances.set(tx.to_wallet, toBalance + amountCents);
       } else if (tx.status === 'PENDING') {
         this.pendingCount += 1;
       }
@@ -190,12 +192,47 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     return wallets.map(wallet => ({
       wallet,
-      balance: balances.get(wallet.id) ?? 0
+      balance: this.round2((balances.get(wallet.id) ?? 0) / 100)
     }));
   }
 
   private txsCountFromData(txs: Transaction[]): void {
     this.txCount = txs.length;
+  }
+
+  private setupWalletViewport(): void {
+    if (!this.walletSummaries.length) {
+      this.visibleWallets = [];
+      return;
+    }
+    const windowSize = Math.min(this.walletViewportSize, this.walletSummaries.length);
+    this.walletRotationIndex = 0;
+    this.applyWalletWindow(this.walletRotationIndex, windowSize);
+
+    if (this.walletSummaries.length <= windowSize) {
+      if (this.walletRotationTimer) {
+        clearInterval(this.walletRotationTimer);
+        this.walletRotationTimer = undefined;
+      }
+      return;
+    }
+
+    if (this.walletRotationTimer) {
+      clearInterval(this.walletRotationTimer);
+    }
+    this.walletRotationTimer = setInterval(() => {
+      this.walletRotationIndex = (this.walletRotationIndex + 1) % this.walletSummaries.length;
+      this.applyWalletWindow(this.walletRotationIndex, windowSize);
+    }, 5000);
+  }
+
+  private applyWalletWindow(startIndex: number, windowSize: number): void {
+    const slice: WalletSummary[] = [];
+    for (let offset = 0; offset < windowSize; offset += 1) {
+      const idx = (startIndex + offset) % this.walletSummaries.length;
+      slice.push(this.walletSummaries[idx]);
+    }
+    this.visibleWallets = slice;
   }
 
   private renderChart(): void {
@@ -288,5 +325,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (me) => { this.currentUsername = me.username; },
       error: () => { this.currentUsername = null; }
     });
+  }
+
+  private toCents(value: unknown): number {
+    const num = Number(value ?? 0);
+    if (!Number.isFinite(num)) {
+      return 0;
+    }
+    return Math.round(num * 100);
+  }
+
+  private round2(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 }

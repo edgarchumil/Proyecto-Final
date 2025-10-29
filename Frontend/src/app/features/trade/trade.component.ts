@@ -17,7 +17,7 @@ export class TradeComponent implements OnInit {
   side: 'BUY' | 'SELL' = 'BUY';
   wallets: Wallet[] = [];
   users: AppUser[] = [];
-  form = { wallet: null as number | null, amount: 0.0, fee: 0.001, method: 'BANK' as TradeMethod, reference: '' };
+  form = { wallet: null as number | null, amount: 0.0, fee: 0.0, method: 'BANK' as TradeMethod, reference: '' };
   useP2PRequest = false;
   counterparty: number | null = null;
   loading = false;
@@ -38,10 +38,12 @@ export class TradeComponent implements OnInit {
     this.error = null; this.success = null;
     const wallet = this.form.wallet || 0;
     if (!wallet) { this.error = 'Selecciona una wallet.'; return; }
-    const amount = Number(this.form.amount);
+    const amount = this.round2(Number(this.form.amount));
     if (!Number.isFinite(amount) || amount <= 0) { this.error = 'Monto inválido.'; return; }
-    const fee = Number(this.form.fee);
+    const fee = this.round2(Number(this.form.fee));
     if (!Number.isFinite(fee) || fee < 0) { this.error = 'Fee inválida.'; return; }
+    this.form.amount = amount;
+    this.form.fee = fee;
     // Si es solicitud P2P, crear notificación para la contraparte
     if (this.useP2PRequest) {
       const cp = Number(this.counterparty);
@@ -61,5 +63,12 @@ export class TradeComponent implements OnInit {
       next: (tx) => { this.success = { id: tx.id, tx_hash: tx.tx_hash }; this.loading = false; },
       error: () => { this.error = 'No se pudo ejecutar la orden.'; this.loading = false; }
     });
+  }
+
+  private round2(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 }

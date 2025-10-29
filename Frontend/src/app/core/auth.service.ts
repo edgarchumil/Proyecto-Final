@@ -17,9 +17,32 @@ export class AuthService {
   // ---------- Sesión ----------
   isAuthenticated(): boolean { return !!localStorage.getItem('access'); }
 
+  private currentTabId(): string | null {
+    return sessionStorage.getItem('tabId');
+  }
+
+  private setActiveOwner(): void {
+    const tabId = this.currentTabId();
+    if (tabId) {
+      localStorage.setItem('activeTabId', tabId);
+    }
+  }
+
+  private clearActiveOwner(): void {
+    const tabId = this.currentTabId();
+    if (!tabId) {
+      localStorage.removeItem('activeTabId');
+      return;
+    }
+    if (localStorage.getItem('activeTabId') === tabId) {
+      localStorage.removeItem('activeTabId');
+    }
+  }
+
   private clearTokens(): void {
     localStorage.removeItem('access');
     localStorage.removeItem('refresh');
+    this.clearActiveOwner();
     this.authStatus.next(false);
   }
 
@@ -39,6 +62,7 @@ export class AuthService {
         tap(t => {
           localStorage.setItem('access', t.access);
           localStorage.setItem('refresh', t.refresh);
+          this.setActiveOwner();
           this.authStatus.next(true);
         })
       );
@@ -56,6 +80,13 @@ export class AuthService {
     const refresh = localStorage.getItem('refresh');
     return this.http
       .post<{ access: string }>(`${environment.apiUrl}/auth/token/refresh/`, { refresh })
-      .pipe(tap(r => { if (r?.access) localStorage.setItem('access', r.access); }));
+      .pipe(tap(r => {
+        if (r?.access) {
+          localStorage.setItem('access', r.access);
+          if (!localStorage.getItem('activeTabId')) {
+            this.setActiveOwner();
+          }
+        }
+      }));
   }
 }

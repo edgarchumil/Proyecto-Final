@@ -21,9 +21,13 @@ class WalletCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context['request']
         pub, priv = _gen_keypair()
+        name = validated_data.get('name')
+        if not name:
+            base = request.user.username or request.user.get_full_name() or 'Wallet'
+            name = f"{base}"
         return Wallet.objects.create(
             user=request.user,
-            name=validated_data['name'],
+            name=name,
             pub_key=pub,
             priv_key_enc=priv
         )

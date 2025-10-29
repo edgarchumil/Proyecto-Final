@@ -1,10 +1,13 @@
 import os, hashlib
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django.db import transaction as dbtx
 from rest_framework import serializers
 from .models import Transaction, TradeRequest
 from wallets.models import Wallet
 from blocks.models import Block
+
+TWOPLACES = Decimal('0.01')
+
 
 def _compute_tx_hash(from_id: int, to_id: int, amount: Decimal, fee: Decimal, salt: bytes) -> str:
     base = f'{from_id}:{to_id}:{amount}:{fee}:{salt.hex()}'.encode('utf-8')
@@ -14,6 +17,9 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = ('from_wallet', 'to_wallet', 'amount', 'fee')  # el servidor genera tx_hash y status
+        extra_kwargs = {
+            'fee': {'required': False, 'default': Decimal('0')}
+        }
 
     def validate(self, data):
         from_w: Wallet = data['from_wallet']
@@ -22,11 +28,18 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
         if from_w_id := getattr(from_w, 'id', None) == getattr(to_w, 'id', None):
             raise serializers.ValidationError('from_wallet y to_wallet deben ser distintos.')
 
-        if data['amount'] <= 0:
+        amount = data.get('amount')
+        fee = data.get('fee', Decimal('0'))
+        if amount is None:
+            raise serializers.ValidationError('amount es requerido.')
+        if amount <= 0:
             raise serializers.ValidationError('amount debe ser > 0.')
 
-        if data['fee'] < 0:
+        if fee < 0:
             raise serializers.ValidationError('fee no puede ser negativa.')
+
+        data['amount'] = Decimal(str(amount)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+        data['fee'] = Decimal(str(fee)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
 
         # Opcional: si quieres impedir enviar a wallets de otros usuarios, descomenta:
         # if from_w.user_id != self.context["request"].user.id:
@@ -111,9 +124,16 @@ class TradeRequestCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TradeRequest
         fields = ('counterparty', 'side', 'amount', 'fee')
+        extra_kwargs = {
+            'fee': {'required': False, 'default': Decimal('0')}
+        }
 
     def create(self, validated_data):
         import secrets
         requester = self.context['request'].user
         token = secrets.token_hex(16)
+        amount = Decimal(str(validated_data.get('amount', Decimal('0')))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+        fee = Decimal(str(validated_data.get('fee', Decimal('0')))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+        validated_data['amount'] = amount
+        validated_data['fee'] = fee
         return TradeRequest.objects.create(requester=requester, token=token, **validated_data)

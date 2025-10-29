@@ -64,20 +64,22 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
   }
 
   addTick(): void {
-    if (!this.form.price_usd || this.form.price_usd <= 0) {
+    const normalized = this.round2(Number(this.form.price_usd));
+    if (!Number.isFinite(normalized) || normalized <= 0) {
       this.error = 'Ingresa un precio válido.';
       return;
     }
     this.error = null;
     const payload = {
       ts: new Date(this.form.ts).toISOString(),
-      price_usd: Number(this.form.price_usd),
+      price_usd: normalized,
     };
     this.price.create(payload).subscribe({
       next: tick => {
         this.ticks = [tick, ...this.ticks];
         this.renderChart();
         this.form.ts = new Date().toISOString().slice(0, 16);
+        this.form.price_usd = normalized;
       },
       error: () => this.error = 'No se pudo registrar el precio.'
     });
@@ -87,7 +89,7 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
     const last = this.ticks[0] ? Number(this.ticks[0].price_usd) : 20;
     // random walk: variación entre -3% y +3%
     const pct = (Math.random() - 0.5) * 0.06;
-    const next = Math.max(0.1, +(last * (1 + pct)).toFixed(6));
+    const next = Math.max(0.1, this.round2(last * (1 + pct)));
     const ts = new Date().toISOString();
     this.price.create({ ts, price_usd: next }).subscribe({
       next: tick => { this.ticks = [tick, ...this.ticks].slice(0, 100); this.renderChart(); },
@@ -103,7 +105,7 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
 
     const sorted = [...this.ticks].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
     const labels = sorted.map(t => new Date(t.ts).toLocaleString());
-    const data = sorted.map(t => Number(t.price_usd));
+    const data = sorted.map(t => this.round2(Number(t.price_usd)));
 
     this.chart?.destroy();
     this.chart = new Chart(ctx, {
@@ -124,12 +126,19 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: true },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y?.toFixed(4)} USD` } }
+          tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y?.toFixed(2)} USD` } }
         },
         scales: {
           y: { beginAtZero: false }
         }
       }
     });
+  }
+
+  private round2(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 }
