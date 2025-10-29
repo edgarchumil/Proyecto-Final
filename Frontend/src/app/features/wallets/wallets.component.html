@@ -28,13 +28,27 @@
 
     <table *ngIf="!loading && wallets.length" class="table">
       <thead>
-        <tr><th>Nombre</th><th>Clave Pública</th><th>Creada</th><th></th></tr>
+        <tr>
+          <th>Nombre</th>
+          <th class="balance">Fondos (SIM)</th>
+          <th class="balance">Fondos (BTC)</th>
+          <th class="balance">≈ USD</th>
+          <th class="pubkey">Clave Pública</th>
+          <th class="created">Creada</th>
+          <th></th>
+        </tr>
       </thead>
       <tbody>
         <tr *ngFor="let w of wallets">
-          <td>{{ w.name }}</td>
-          <td><code>{{ w.pub_key }}</code></td>
-          <td>{{ w.created_at | date:'medium' }}</td>
+          <td>
+            <div class="wallet-name">{{ w.name }}</div>
+            <div class="wallet-id muted">#{{ w.id }}</div>
+          </td>
+          <td class="balance">{{ balanceSimOf(w.id) | number:'1.2-2' }}</td>
+          <td class="balance">{{ balanceBtcOf(w.id) !== null ? (balanceBtcOf(w.id)! | number:'1.8-8') : '—' }}</td>
+          <td class="balance">{{ balanceUsdOf(w.id) !== null ? (balanceUsdOf(w.id)! | number:'1.2-2') : '—' }}</td>
+          <td class="pubkey"><code>{{ w.pub_key }}</code></td>
+          <td class="created">{{ w.created_at | date:'medium' }}</td>
           <td class="right"><button class="btn" (click)="remove(w.id)">Eliminar</button></td>
         </tr>
       </tbody>

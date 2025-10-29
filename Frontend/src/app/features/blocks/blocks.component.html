@@ -53,7 +53,7 @@
             <td>{{ b.mined_at | date:'medium' }}</td>
             <td>
               <button type="button" class="btn" (click)="simulateMining(b)" [disabled]="rowMiningId === b.id">
-                {{ rowMiningId === b.id ? 'Minando...' : 'Simular minado' }}
+                {{ rowMiningId === b.id ? 'Minando...' : (b.id < 0 ? 'Minar' : 'Simular minado') }}
               </button>
             </td>
           </tr>

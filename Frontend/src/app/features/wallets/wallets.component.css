@@ -70,7 +70,18 @@
 
 .table{ width:100%; border-collapse:collapse; }
 .table th,
-.table td{ padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; }
+.table td{ padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; vertical-align:top; }
+.table th.balance,
+.table td.balance{ text-align:right; white-space:nowrap; }
+.table td.right{ text-align:right; }
+.table th.pubkey,
+.table td.pubkey{ width:28%; }
+.table td.pubkey code{ display:block; max-height:3.4em; overflow:hidden; text-overflow:ellipsis; word-break:break-all; line-height:1.2; }
+.table th.created,
+.table td.created{ white-space:nowrap; width:160px; }
+.table td.created{ font-size:.9rem; }
+.wallet-name{ font-weight:600; }
+.wallet-id{ font-size:.8rem; }
 .table code{ font-size:12px; }
 
 .tools{

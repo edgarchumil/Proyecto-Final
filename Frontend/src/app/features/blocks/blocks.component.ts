@@ -43,7 +43,13 @@ export class BlocksComponent implements OnInit, OnDestroy {
     this.error = null;
     this.service.list().subscribe({
       next: (blocks) => {
-        this.blocks = blocks.sort((a, b) => b.height - a.height);
+        if (blocks.length) {
+          this.blocks = blocks.sort((a, b) => b.height - a.height);
+          this.clearMockBlockCount();
+        } else {
+          const mockCount = this.ensureMockBlockCount();
+          this.blocks = this.buildMockBlocks(mockCount);
+        }
         this.currentHash = '';
         this.loading = false;
       },
@@ -63,12 +69,16 @@ export class BlocksComponent implements OnInit, OnDestroy {
     this.infoMessage = null;
     this.mining = true;
     this.service.create({ merkle_root: this.merkle.trim(), nonce: this.nonce.trim() }).subscribe({
-      next: () => {
+      next: (created) => {
         this.merkle = '';
         this.nonce = '';
         this.currentHash = '';
         this.mining = false;
+        const message = created?.height !== undefined
+          ? `Bloque #${created.height} minado.`
+          : 'Bloque minado correctamente.';
         this.refresh();
+        this.loadMiningSummary(message);
       },
       error: (err: HttpErrorResponse) => {
         if (err?.status === 401) {
@@ -86,6 +96,10 @@ export class BlocksComponent implements OnInit, OnDestroy {
 
   simulateMining(block: Block): void {
     if (this.rowMiningId !== null) { return; }
+    if (block.id < 0) {
+      this.mineMockBlock(block);
+      return;
+    }
     this.error = null;
     this.infoMessage = null;
     this.rowMiningId = block.id;
@@ -138,6 +152,81 @@ export class BlocksComponent implements OnInit, OnDestroy {
       return 0;
     }
     return Math.round(num * 1e2) / 1e2;
+  }
+
+  private buildMockBlocks(count: number): Block[] {
+    const now = Date.now();
+    let previousHash = cryptoRandomHex(64);
+    const blocks: Block[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const height = count - i;
+      const currentHash = cryptoRandomHex(64);
+      blocks.push({
+        id: -(i + 1),
+        height,
+        prev_hash: previousHash,
+        merkle_root: cryptoRandomHex(64),
+        nonce: cryptoRandomHex(16),
+        mined_at: new Date(now - i * 60000).toISOString(),
+        current_hash: currentHash
+      });
+      previousHash = currentHash;
+    }
+    return blocks;
+  }
+
+  private mineMockBlock(block: Block): void {
+    this.error = null;
+    this.infoMessage = null;
+    this.rowMiningId = block.id;
+    this.mining = true;
+    this.service.create({ merkle_root: block.merkle_root, nonce: block.nonce }).subscribe({
+      next: () => {
+        this.mining = false;
+        this.rowMiningId = null;
+        const message = `Bloque demo #${block.height} minado.`;
+        this.blocks = this.blocks.filter(b => b.id !== block.id);
+        if (!this.blocks.length) {
+          this.refresh();
+        }
+        this.loadMiningSummary(message);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.mining = false;
+        this.rowMiningId = null;
+        if (err?.status === 401) {
+          this.error = 'Debes iniciar sesión para minar bloques.';
+        } else if (err?.status === 400) {
+          this.error = 'Datos inválidos al minar el bloque demo.';
+        } else {
+          this.error = 'No se pudo minar el bloque demo.';
+        }
+      }
+    });
+  }
+
+  private ensureMockBlockCount(): number {
+    if (typeof localStorage === 'undefined') {
+      return Math.random() < 0.5 ? 2 : 5;
+    }
+    try {
+      const stored = localStorage.getItem('mockBlockCount');
+      if (stored) {
+        const parsed = Number(stored);
+        if (parsed === 2 || parsed === 5) {
+          return parsed;
+        }
+      }
+    } catch {}
+    const variants = [2, 3, 4, 5];
+    const count = variants[Math.floor(Math.random() * variants.length)];
+    try { localStorage.setItem('mockBlockCount', String(count)); } catch {}
+    return count;
+  }
+
+  private clearMockBlockCount(): void {
+    if (typeof localStorage === 'undefined') { return; }
+    try { localStorage.removeItem('mockBlockCount'); } catch {}
   }
 
   randomFill(): void {
