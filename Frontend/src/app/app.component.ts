@@ -1,12 +1,14 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { TopbarComponent } from './layout/topbar/topbar.component';
 import { AuthService } from './core/auth.service';
+import { PreloaderService } from './core/preloader.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TopbarComponent],
+  imports: [CommonModule, RouterOutlet, TopbarComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
@@ -30,8 +32,16 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   };
 
-  constructor(private auth: AuthService, private router: Router) {
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+    private preloader: PreloaderService
+  ) {
     this.tabId = this.ensureTabId();
+  }
+
+  get preloaderVisible$() {
+    return this.preloader.visible$;
   }
 
   ngOnInit(): void {

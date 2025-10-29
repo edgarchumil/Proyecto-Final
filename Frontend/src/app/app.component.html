@@ -1,3 +1,13 @@
+<div class="preloader-overlay" *ngIf="preloaderVisible$ | async">
+  <div class="preloader-card">
+    <div class="crypto-spinner">
+      <span class="ring"></span>
+      <span class="coin"></span>
+    </div>
+    <p>Sincronizando tu universo cripto…</p>
+  </div>
+</div>
+
 <div class="center-wrap">
   <app-topbar></app-topbar>
   <main id="auth-grid" class="auth-grid single" role="main">

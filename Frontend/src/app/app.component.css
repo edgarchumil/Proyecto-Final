@@ -1,0 +1,90 @@
+.preloader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(circle at top, rgba(34,197,94,0.08), rgba(15,23,42,0.95));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+
+.preloader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 28px 36px;
+  border-radius: 20px;
+  background: rgba(12,18,32,0.9);
+  border: 1px solid rgba(59,130,246,0.25);
+  box-shadow: 0 18px 40px rgba(8,15,35,0.45);
+  max-width: 320px;
+  text-align: center;
+}
+
+.preloader-card p {
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #dbeafe;
+}
+
+.crypto-spinner {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crypto-spinner .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: rgba(96,165,250,0.7);
+  border-right-color: rgba(34,197,94,0.6);
+  animation: spin 2.4s linear infinite;
+  filter: drop-shadow(0 4px 12px rgba(59,130,246,0.35));
+}
+
+.crypto-spinner .coin {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #22d3ee 0%, #0ea5e9 45%, #1f2937 90%);
+  border: 2px solid rgba(148,163,184,0.35);
+  box-shadow:
+    inset 0 3px 8px rgba(14,116,144,0.6),
+    inset 0 -4px 8px rgba(15,23,42,0.75),
+    0 10px 18px rgba(14,116,144,0.35);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+}
+
+@media (max-width: 540px) {
+  .preloader-card {
+    width: min(260px, 90vw);
+    padding: 22px;
+  }
+  .crypto-spinner {
+    width: 90px;
+    height: 90px;
+  }
+  .crypto-spinner .coin {
+    width: 48px;
+    height: 48px;
+  }
+}
