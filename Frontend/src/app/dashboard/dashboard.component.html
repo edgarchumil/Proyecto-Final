@@ -6,7 +6,7 @@
     <div class="change">
       ≈ {{ holdingsUsd !== null ? (holdingsUsd | number:'1.2-2') : '—' }} USD
     </div>
-    <button class="btn outline refresh" type="button" (click)="loadMetrics()" [disabled]="loadingMetrics">
+    <button class="btn outline refresh" type="button" (click)="loadMetrics(true)" [disabled]="loadingMetrics">
       {{ loadingMetrics ? 'Actualizando…' : 'Actualizar' }}
     </button>
   </div>

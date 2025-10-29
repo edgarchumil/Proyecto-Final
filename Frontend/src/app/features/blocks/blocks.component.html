@@ -4,15 +4,19 @@
 
     <form class="mine" (submit)="$event.preventDefault(); mine();">
       <div class="field">
+        <label>Nonce</label>
+        <input type="text" [(ngModel)]="nonce" name="nonce" placeholder="Ingresa nonce" (ngModelChange)="handleNonceChange($event)" />
+      </div>
+      <div class="field">
+        <label>Hash actual</label>
+        <input type="text" [value]="currentHash" placeholder="Se autocompletará" readonly />
+      </div>
+      <div class="field">
         <label>Merkle root</label>
         <input type="text" [(ngModel)]="merkle" name="merkle" placeholder="64 hex" />
       </div>
-      <div class="field">
-        <label>Nonce</label>
-        <input type="text" [(ngModel)]="nonce" name="nonce" placeholder="Nonce" />
-      </div>
       <div class="actions">
-        <button type="button" class="btn" (click)="randomFill()">Autocompletar</button>
+        <button type="button" class="btn" (click)="applyAutofill()">Autocompletar</button>
         <button class="btn primary" type="submit" [disabled]="mining">{{ mining ? 'Minando...' : 'Minar bloque' }}</button>
       </div>
     </form>
@@ -21,28 +25,30 @@
 
     <div *ngIf="loading" class="skeleton-list"><div class="skeleton-row" *ngFor="let _ of [1,2,3]"></div></div>
 
-    <table *ngIf="!loading && blocks.length" class="table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Hash actual</th>
-          <th>Prev</th>
-          <th>Merkle root</th>
-          <th>Nonce</th>
-          <th>Minado</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let b of blocks">
-          <td>{{ b.height }}</td>
-          <td><code>{{ b.current_hash }}</code></td>
-          <td><code>{{ b.prev_hash }}</code></td>
-          <td><code>{{ b.merkle_root }}</code></td>
-          <td>{{ b.nonce }}</td>
-          <td>{{ b.mined_at | date:'medium' }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll" *ngIf="!loading && blocks.length">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Hash actual</th>
+            <th>Prev</th>
+            <th>Merkle root</th>
+            <th>Nonce</th>
+            <th>Minado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let b of blocks">
+            <td>{{ b.height }}</td>
+            <td><code>{{ b.current_hash }}</code></td>
+            <td><code>{{ b.prev_hash }}</code></td>
+            <td><code>{{ b.merkle_root }}</code></td>
+            <td><code>{{ b.nonce }}</code></td>
+            <td>{{ b.mined_at | date:'medium' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <p class="muted" *ngIf="!loading && !blocks.length">Aún no hay bloques en la cadena.</p>
   </div>

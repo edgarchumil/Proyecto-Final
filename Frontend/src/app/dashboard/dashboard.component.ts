@@ -23,6 +23,7 @@ import type { PriceTick } from '../features/price/price.service';
 import { AuditService } from '../features/audit/audit.service';
 import { TradeRequestsService } from '../features/trade/trade-requests.service';
 import type { TradeRequest } from '../features/trade/trade-requests.service';
+import { PreloaderService } from '../core/preloader.service';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Filler, Legend);
 
@@ -80,7 +81,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private priceApi: PriceService,
     private auditApi: AuditService,
     public tradeReqApi: TradeRequestsService,
-    private auth: AuthService
+    private auth: AuthService,
+    private preloader: PreloaderService
   ) {}
 
   ngOnInit(): void {
@@ -120,7 +122,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.meSub?.unsubscribe();
   }
 
-  loadMetrics(): void {
+  loadMetrics(showLoader = false): void {
+    if (showLoader) {
+      this.preloader.show(5000);
+    }
     this.loadingMetrics = true;
     this.metricsSub?.unsubscribe();
     this.metricsSub = forkJoin({

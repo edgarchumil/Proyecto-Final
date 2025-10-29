@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgFor, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -11,13 +11,14 @@ import { BlocksService, Block } from './blocks.service';
   templateUrl: './blocks.component.html',
   styleUrls: ['./blocks.component.css']
 })
-export class BlocksComponent implements OnInit {
+export class BlocksComponent implements OnInit, OnDestroy {
   blocks: Block[] = [];
   loading = false;
   error: string | null = null;
 
   merkle = '';
   nonce = '';
+  currentHash = '';
   mining = false;
 
   constructor(private service: BlocksService) {}
@@ -26,12 +27,16 @@ export class BlocksComponent implements OnInit {
     this.refresh();
   }
 
+  ngOnDestroy(): void {
+  }
+
   refresh(): void {
     this.loading = true;
     this.error = null;
     this.service.list().subscribe({
       next: (blocks) => {
-        this.blocks = blocks;
+        this.blocks = blocks.sort((a, b) => b.height - a.height);
+        this.currentHash = '';
         this.loading = false;
       },
       error: () => {
@@ -52,6 +57,7 @@ export class BlocksComponent implements OnInit {
       next: () => {
         this.merkle = '';
         this.nonce = '';
+        this.currentHash = '';
         this.mining = false;
         this.refresh();
       },
@@ -70,8 +76,37 @@ export class BlocksComponent implements OnInit {
   }
 
   randomFill(): void {
-    if (!this.merkle) this.merkle = cryptoRandomHex(64);
-    if (!this.nonce) this.nonce = cryptoRandomHex(16);
+    if (!this.nonce) {
+      this.nonce = cryptoRandomHex(16);
+    }
+    if (!this.merkle) {
+      this.merkle = cryptoRandomHex(64);
+    }
+    this.currentHash = '';
+  }
+
+  handleNonceChange(value: string): void {
+    this.nonce = value;
+    this.currentHash = '';
+  }
+
+  updateNonceDetails(): void {
+    if (!this.nonce) {
+      this.currentHash = '';
+      return;
+    }
+    const trimmed = this.nonce.trim().toLowerCase();
+    const match = this.blocks.find(b => (b.nonce || '').toLowerCase() === trimmed);
+    if (match) {
+      this.currentHash = match.current_hash;
+      this.merkle = match.merkle_root;
+    } else {
+      this.currentHash = '';
+    }
+  }
+
+  applyAutofill(): void {
+    this.updateNonceDetails();
   }
 }
 

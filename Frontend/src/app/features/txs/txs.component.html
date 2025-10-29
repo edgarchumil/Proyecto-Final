@@ -2,81 +2,11 @@
   <div class="feature-card">
     <h2>Transacciones</h2>
 
-    <div *ngIf="fromWalletId" class="callout">
-      <strong>Preparar transferencia</strong>
-      <div class="muted small">
-        Wallet origen: #{{ fromWalletId }}
-        <span *ngIf="fromPubKey"> — <code>{{ fromPubKey }}</code></span>
-      </div>
-      <p class="muted">Los campos se completaron con esta wallet.</p>
-    </div>
-
-    <form class="transfer" (submit)="$event.preventDefault(); create();">
-      <div class="field">
-        <label>Wallet emisora</label>
-        <select [(ngModel)]="form.from_wallet" name="from_wallet">
-          <option *ngFor="let w of wallets" [ngValue]="w.id">{{ w.name }} (#{{ w.id }})</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Usuario destino</label>
-        <select [(ngModel)]="form.to_user" name="to_user">
-          <option [ngValue]="null">— Seleccionar usuario —</option>
-          <option *ngFor="let u of users" [ngValue]="u.id">{{ u.username }} (#{{ u.id }})</option>
-        </select>
-        <small class="muted">Se enviará a la wallet por defecto del usuario seleccionado.</small>
-      </div>
-      <div class="field">
-        <label>ID wallet destino (opcional)</label>
-        <input type="number" [(ngModel)]="form.to_wallet" name="to_wallet" placeholder="ID numérico" />
-        <small class="muted">Si no eliges usuario, puedes especificar un ID de wallet.</small>
-      </div>
-      <div class="field double">
-        <div>
-          <label>Monto (SIM)</label>
-          <input type="number" step="0.01" [(ngModel)]="form.amount" name="amount" />
-        </div>
-        <div>
-          <label>Fee</label>
-          <input type="number" step="0.01" [(ngModel)]="form.fee" name="fee" />
-        </div>
-      </div>
-      <button class="btn primary" type="submit" [disabled]="sending">{{ sending ? 'Enviando...' : 'Enviar' }}</button>
-    </form>
-
-    <section class="filters">
-      <div class="field">
-        <label>Filtrar por estado</label>
-        <select [(ngModel)]="statusFilter" name="statusFilter" (change)="applyFilters()">
-          <option value="ALL">Todos</option>
-          <option value="PENDING">Pendientes</option>
-          <option value="CONFIRMED">Confirmadas</option>
-          <option value="FAILED">Fallidas</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Filtrar por wallet</label>
-        <select [(ngModel)]="walletFilter" name="walletFilter" (change)="applyFilters()">
-          <option [ngValue]="null">Todas</option>
-          <option *ngFor="let w of wallets" [ngValue]="w.id">{{ w.name }} (#{{ w.id }})</option>
-        </select>
-      </div>
-    </section>
-
-    <div *ngIf="success" class="success">
-      <div>
-        <strong>Transacción enviada</strong>
-        <div class="muted small">TX hash: {{ success.tx_hash }}</div>
-        <div class="muted small">#{{ success.from_wallet }} → #{{ success.to_wallet }} · {{ success.amount | number:'1.2-2' }} SIM</div>
-      </div>
-      <button type="button" class="btn" (click)="dismissSuccess()">Cerrar</button>
-    </div>
-
     <div *ngIf="error" class="error">{{ error }}</div>
 
     <div *ngIf="loading" class="skeleton-list"><div class="skeleton-row" *ngFor="let _ of [1,2,3,4,5]"></div></div>
 
-    <table *ngIf="!loading && transactions.length" class="table">
+    <table *ngIf="!loading && visibleTransactions.length" class="table">
       <thead>
         <tr>
           <th>ID</th>
@@ -91,7 +21,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let tx of transactions">
+        <tr *ngFor="let tx of visibleTransactions">
           <td>#{{ tx.id }}</td>
           <td>
             <div>{{ tx.from_wallet_name }} (#{{ tx.from_wallet }})</div>

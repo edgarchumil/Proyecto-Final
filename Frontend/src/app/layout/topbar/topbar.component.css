@@ -35,6 +35,33 @@
 .nav a:hover, .nav a.active, .nav button:hover{
   background: rgba(255,255,255,.08); color: #fff;
 }
+.nav .cta{
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  position: relative;
+}
+.nav .cta.buy{
+  border-color: rgba(34,197,94,.35);
+  background: rgba(34,197,94,.18);
+  color: #bbf7d0;
+}
+.nav .cta.sell{
+  border-color: rgba(248,113,113,.35);
+  background: rgba(248,113,113,.18);
+  color: #fecaca;
+}
+.nav .cta.buy:hover,
+.nav .cta.buy.active{
+  background: rgba(34,197,94,.25);
+  color: #dcfce7;
+}
+.nav .cta.sell:hover,
+.nav .cta.sell.active{
+  background: rgba(248,113,113,.26);
+  color: #fee2e2;
+}
 
 /* ===== Notificaciones (campana) ===== */
 .notif-wrapper{

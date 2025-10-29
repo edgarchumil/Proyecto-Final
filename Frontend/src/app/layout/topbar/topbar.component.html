@@ -16,6 +16,8 @@
 
     <!-- Navegación -->
     <nav class="nav" [class.open]="open" role="navigation" aria-label="Principal">
+      <a *ngIf="isLoggedIn" class="cta buy" routerLink="/trade" [queryParams]="{ side: 'buy' }" routerLinkActive="active" (click)="close()">Comprar</a>
+      <a *ngIf="isLoggedIn" class="cta sell" routerLink="/trade" [queryParams]="{ side: 'sell' }" routerLinkActive="active" (click)="close()">Vender</a>
       <a *ngIf="!isAuthPage" routerLink="/dashboard" routerLinkActive="active" (click)="close()">Dashboard</a>
       <div *ngIf="isLoggedIn" class="notif-wrapper">
         <a href="#"
