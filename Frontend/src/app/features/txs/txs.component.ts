@@ -45,7 +45,6 @@ export class TxsComponent implements OnInit, OnDestroy {
       this.fromPubKey = p || undefined;
     });
 
-    this.loadBlocks();
     this.fetch();
   }
 
@@ -65,20 +64,25 @@ export class TxsComponent implements OnInit, OnDestroy {
         this.transactions = data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         this.setupRotation();
         this.loading = false;
+        this.loadBlocks(true);
       },
-      error: () => { this.error = 'No se pudo cargar transacciones.'; this.loading = false; }
+      error: (err) => { this.error = typeof err?.error?.detail === 'string' ? err.error.detail : 'No se pudo cargar transacciones.'; this.loading = false; }
     });
   }
 
-  loadBlocks(): void {
+  loadBlocks(force = false): void {
     this.blocksApi.list().subscribe({
       next: (data) => {
-        this.blocks = data;
-        // Preseleccionar el primer bloque para filas pendientes si no hay selección
+        const sorted = [...data].sort((a, b) => b.height - a.height);
+        this.blocks = sorted;
         const firstId = this.blocks.length ? this.blocks[0].id : null;
         this.transactions
           .filter(t => t.status === 'PENDING')
-          .forEach(t => { if (this.confirmBlockId[t.id] == null) this.confirmBlockId[t.id] = firstId; });
+          .forEach(t => {
+            if (force || this.confirmBlockId[t.id] == null) {
+              this.confirmBlockId[t.id] = firstId;
+            }
+          });
       },
       error: () => { /* silencioso en dashboard de txs */ }
     });
@@ -86,12 +90,14 @@ export class TxsComponent implements OnInit, OnDestroy {
 
   confirmTx(tx: Transaction): void {
     this.error = null;
-    const blockId = this.confirmBlockId[tx.id] ?? (this.blocks[0]?.id ?? null);
-    if (!blockId) { this.error = 'Primero crea/mina un bloque para confirmar.'; return; }
+    const blockId = this.confirmBlockId[tx.id];
     this.sending = true;
-    this.txs.confirm(tx.id, blockId).subscribe({
+    this.txs.confirm(tx.id, blockId ?? null).subscribe({
       next: () => { this.fetch(); this.sending = false; },
-      error: () => { this.error = 'No se pudo confirmar la transacción.'; this.sending = false; }
+      error: (err) => {
+        this.error = typeof err?.error?.detail === 'string' ? err.error.detail : 'No se pudo confirmar la transacción.';
+        this.sending = false;
+      }
     });
   }
 
@@ -100,7 +106,10 @@ export class TxsComponent implements OnInit, OnDestroy {
     this.sending = true;
     this.txs.fail(tx.id).subscribe({
       next: () => { this.fetch(); this.sending = false; },
-      error: () => { this.error = 'No se pudo marcar como fallida.'; this.sending = false; }
+      error: (err) => {
+        this.error = typeof err?.error?.detail === 'string' ? err.error.detail : 'No se pudo marcar como fallida.';
+        this.sending = false;
+      }
     });
   }
 

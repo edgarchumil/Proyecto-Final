@@ -1,8 +1,27 @@
-.feature-center { display:flex; justify-content:center; padding:16px; }
-.feature-card { width:min(620px, 100%); background:#121826; border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:18px; }
+.feature-center { display:flex; justify-content:center; align-items:center; min-height:calc(100vh - 120px); padding:24px; box-sizing:border-box; }
+.feature-card { width:min(620px, 100%); background:#121826; border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:24px; box-shadow:0 24px 40px rgba(8,15,28,.35); }
 .toggle { display:flex; gap:8px; margin-bottom:12px; }
 .btn.active { background:#16a34a; border-color:#16a34a; }
+.buy-options { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.buy-option { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(15,23,42,.8); color:inherit; text-align:left; cursor:pointer; transition:border .2s ease, background .2s ease; }
+.buy-option .icon { font-size:1.4rem; }
+.buy-option .details { flex:1; display:flex; flex-direction:column; }
+.buy-option .details strong { font-size:1rem; }
+.buy-option .details small { opacity:.75; }
+.buy-option .arrow { font-size:1.1rem; opacity:.6; }
+.buy-option.active { border-color:rgba(59,130,246,.45); background:rgba(59,130,246,.1); }
+.buy-option:hover { border-color:#facc15; background:rgba(250,204,21,.08); }
 .field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.amount-row { display:flex; gap:8px; }
+.amount-row input{ flex:1 1 auto; }
+.amount-row select{ flex:0 0 110px; background:#0f172a; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:10px; color:#e5e7eb; }
 .success { margin-top:12px; padding:10px; border-radius:12px; border:1px solid rgba(34,197,94,.35); background:rgba(34,197,94,.12); }
 .error { margin-top:12px; padding:10px; border-radius:12px; border:1px solid rgba(248,113,113,.35); background:rgba(248,113,113,.12); }
 
+.buy-modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:1100; }
+.buy-modal__backdrop { position:absolute; inset:0; background:rgba(8,15,28,.65); backdrop-filter:blur(3px); }
+.buy-modal__content { position:relative; width:min(480px,90%); background:#0f172a; border-radius:18px; border:1px solid rgba(59,130,246,.25); padding:20px; box-shadow:0 24px 50px rgba(15,23,42,.6); display:flex; flex-direction:column; gap:16px; }
+.buy-modal__header { display:flex; justify-content:space-between; align-items:center; }
+.buy-modal__header h3 { margin:0; font-size:1.1rem; }
+.buy-modal__header .close { border:none; background:transparent; color:#e5e7eb; font-size:1.4rem; cursor:pointer; }
+.buy-modal__header .close:hover { color:#f87171; }

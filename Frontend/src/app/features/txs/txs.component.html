@@ -39,9 +39,10 @@
           <td>
             <ng-container *ngIf="tx.status==='PENDING'; else noActions">
               <select [(ngModel)]="confirmBlockId[tx.id]" name="block_{{tx.id}}" [disabled]="sending">
+                <option [ngValue]="null">Crear bloque nuevo</option>
                 <option *ngFor="let b of blocks" [ngValue]="b.id">#{{ b.id }} (h={{ b.height }})</option>
               </select>
-              <button class="btn small" type="button" (click)="confirmTx(tx)" [disabled]="sending || !blocks.length">Confirmar</button>
+              <button class="btn small" type="button" (click)="confirmTx(tx)" [disabled]="sending">Confirmar</button>
               <button class="btn small outline" type="button" (click)="failTx(tx)" [disabled]="sending">Fallar</button>
             </ng-container>
             <ng-template #noActions>—</ng-template>

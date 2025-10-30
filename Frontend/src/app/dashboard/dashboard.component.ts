@@ -50,6 +50,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private walletRotationTimer?: ReturnType<typeof setInterval>;
   private walletRotationIndex = 0;
   private meSub?: Subscription;
+  private readonly btcUsdReference = 68000;
 
   walletsCount: number | undefined;
   txCount: number | undefined;
@@ -64,7 +65,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   walletSummaries: WalletSummary[] = [];
   visibleWallets: WalletSummary[] = [];
   totalBalance = 0;
-  totalMinedBtc = 0;
+  totalHoldingsBtc: number | null = null;
   minedAttempts = 0;
   recentTransactions: Transaction[] = [];
   visibleTransactions: Transaction[] = [];
@@ -74,6 +75,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   loadingMetrics = false;
   welcomeBanner = false;
+  purchaseSuccess = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -96,6 +98,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       this.welcomeBanner = w === '1' || !!local;
       if (this.welcomeBanner && typeof localStorage !== 'undefined') {
         localStorage.removeItem('welcomeCredit');
+      }
+      if (p.get('buySuccess') === '1') {
+        this.purchaseSuccess = true;
+        setTimeout(() => this.purchaseSuccess = false, 6000);
       }
     });
     this.loadMetrics();
@@ -142,13 +148,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       next: ({ wallets, txs, blocks, mining, prices, audit, notices }) => {
         this.walletsCount = wallets.length;
         this.txsCountFromData(txs);
-        this.blockCount = blocks.length;
+        this.blockCount = this.resolveBlockCount(blocks.length);
         this.auditCount = audit.length;
         this.notifications = notices;
 
         this.walletSummaries = this.buildWalletSummaries(wallets, txs);
         this.totalBalance = this.round2(this.walletSummaries.reduce((acc, item) => acc + item.balance, 0));
-        this.totalMinedBtc = this.roundBtc(mining?.total_btc ?? 0);
+        const minedBtc = this.roundBtc(mining?.total_btc ?? 0);
+        this.totalHoldingsBtc = null;
         this.minedAttempts = mining?.total_attempts ?? 0;
         this.setupWalletViewport();
 
@@ -168,7 +175,15 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.priceChangePct = (latestPrice !== null && firstPrice && firstPrice !== 0)
           ? this.round2(((latestPrice - firstPrice) / firstPrice) * 100)
           : null;
-        this.holdingsUsd = this.lastPrice != null ? this.round2(this.totalBalance * this.lastPrice) : null;
+        if (this.lastPrice != null) {
+          const usdBalance = this.round2(this.totalBalance * this.lastPrice);
+          this.holdingsUsd = usdBalance;
+          const btcFromSim = usdBalance / this.btcUsdReference;
+          this.totalHoldingsBtc = this.roundBtc(btcFromSim + minedBtc);
+        } else {
+          this.holdingsUsd = null;
+          this.totalHoldingsBtc = minedBtc || null;
+        }
 
         this.loadingMetrics = false;
         this.renderChart();
@@ -192,7 +207,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         const amountCents = this.toCents(tx.amount);
         const feeCents = this.toCents(tx.fee);
         const fromBalance = balances.get(tx.from_wallet) ?? 0;
-        balances.set(tx.from_wallet, fromBalance - (amountCents + feeCents));
+        balances.set(tx.from_wallet, Math.max(0, fromBalance - (amountCents + feeCents)));
         const toBalance = balances.get(tx.to_wallet) ?? 0;
         balances.set(tx.to_wallet, toBalance + amountCents);
       } else if (tx.status === 'PENDING') {
@@ -202,7 +217,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     return wallets.map(wallet => ({
       wallet,
-      balance: this.round2((balances.get(wallet.id) ?? 0) / 100)
+      balance: this.round2(Math.max(0, (balances.get(wallet.id) ?? 0) / 100))
     }));
   }
 
@@ -355,5 +370,36 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       return 0;
     }
     return Math.round((num + Number.EPSILON) * 100) / 100;
+  }
+
+  private resolveBlockCount(actual: number): number {
+    if (actual > 0) {
+      this.clearMockBlockCount();
+      return actual;
+    }
+    return this.ensureMockBlockCount();
+  }
+
+  private ensureMockBlockCount(): number {
+    if (typeof localStorage === 'undefined') {
+      return Math.random() < 0.5 ? 2 : 5;
+    }
+    try {
+      const stored = localStorage.getItem('mockBlockCount');
+      if (stored) {
+        const parsed = Number(stored);
+        if (parsed === 2 || parsed === 5) {
+          return parsed;
+        }
+      }
+    } catch {}
+    const count = Math.random() < 0.5 ? 2 : 5;
+    try { localStorage.setItem('mockBlockCount', String(count)); } catch {}
+    return count;
+  }
+
+  private clearMockBlockCount(): void {
+    if (typeof localStorage === 'undefined') { return; }
+    try { localStorage.removeItem('mockBlockCount'); } catch {}
   }
 }

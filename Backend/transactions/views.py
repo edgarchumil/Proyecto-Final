@@ -138,6 +138,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def buy(self, request):
         """Compra SIM: el exchange envía a tu wallet. Body: { wallet, amount, fee?, method?, reference? }"""
+        password = request.data.get('password')
+        if not password:
+            return Response({'detail': 'Debes ingresar tu contraseña para confirmar la compra.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(password):
+            return Response({'detail': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
         wallet_id = request.data.get('wallet')
         amount = request.data.get('amount')
         fee = request.data.get('fee', '0.00')
@@ -166,6 +172,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
         s = TransactionCreateSerializer(data=payload)
         s.is_valid(raise_exception=True)
         tx = s.save()
+        confirm = TransactionConfirmSerializer(tx, data={}, partial=True)
+        confirm.is_valid(raise_exception=True)
+        confirm.save()
         log_action(request.user, 'TRADE_BUY', {
             'tx_id': tx.id,
             'amount': format(amount_d, '.2f'),

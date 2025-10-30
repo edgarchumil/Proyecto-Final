@@ -47,8 +47,9 @@ export class TransactionsService {
     return this.http.post<Transaction>(this.base, payload);
   }
 
-  confirm(id: number, block: number): Observable<Transaction> {
-    return this.http.post<Transaction>(`${this.base}${id}/confirm/`, { block });
+  confirm(id: number, block?: number | null): Observable<Transaction> {
+    const body = block ? { block } : {};
+    return this.http.post<Transaction>(`${this.base}${id}/confirm/`, body);
   }
 
   fail(id: number): Observable<Transaction> {

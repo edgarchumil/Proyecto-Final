@@ -1,6 +1,7 @@
 import os, hashlib
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import transaction as dbtx
+from django.db.models import Max, Sum
 from rest_framework import serializers
 from .models import Transaction, TradeRequest
 from wallets.models import Wallet
@@ -41,11 +42,37 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
         data['amount'] = Decimal(str(amount)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
         data['fee'] = Decimal(str(fee)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
 
+        if getattr(from_w.user, 'username', '') == 'market':
+            return data
+
+        available = self._available_balance(from_w.id)
+        total_debit = data['amount'] + data['fee']
+        if total_debit > available:
+            raise serializers.ValidationError({'detail': 'Fondos insuficientes para completar la transacción.'})
+
         # Opcional: si quieres impedir enviar a wallets de otros usuarios, descomenta:
         # if from_w.user_id != self.context["request"].user.id:
         #     raise serializers.ValidationError("Solo puedes emitir desde tus propias wallets.")
 
         return data
+
+    def _available_balance(self, wallet_id: int) -> Decimal:
+        def agg(qs, field):
+            return qs.aggregate(total=Sum(field))['total'] or Decimal('0')
+
+        confirmed = Transaction.objects.filter(status=Transaction.STATUS_CONFIRMED)
+        pending = Transaction.objects.filter(status=Transaction.STATUS_PENDING)
+
+        incoming = agg(confirmed.filter(to_wallet_id=wallet_id), 'amount')
+        outgoing = agg(confirmed.filter(from_wallet_id=wallet_id), 'amount')
+        outgoing_fee = agg(confirmed.filter(from_wallet_id=wallet_id), 'fee')
+        pending_out = agg(pending.filter(from_wallet_id=wallet_id), 'amount')
+        pending_fee = agg(pending.filter(from_wallet_id=wallet_id), 'fee')
+
+        available = incoming - outgoing - outgoing_fee - pending_out - pending_fee
+        if available < 0:
+            return Decimal('0')
+        return available
 
     @dbtx.atomic
     def create(self, validated_data):
@@ -79,19 +106,34 @@ class TransactionSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'tx_hash', 'status', 'block', 'created_at')
 
 class TransactionConfirmSerializer(serializers.ModelSerializer):
-    """Solo cambia status→CONFIRMED y asigna block (si lo envían)."""
+    """Solo cambia status→CONFIRMED. Si no se envía block, se crea uno nuevo."""
+    block = serializers.PrimaryKeyRelatedField(queryset=Block.objects.all(), required=False, allow_null=True)
+
     class Meta:
         model = Transaction
         fields = ('block',)
 
-    def validate_block(self, value: Block):
-        if value is None:
-            raise serializers.ValidationError('Debes indicar un bloque válido.')
-        return value
-
     @dbtx.atomic
     def update(self, instance: Transaction, validated_data):
-        instance.block = validated_data['block']
+        block: Block | None = validated_data.get('block')
+        if block is None:
+            from django.db.models import Max
+            last_height = Block.objects.aggregate(m=Max('height'))['m']
+            next_height = 0 if last_height is None else last_height + 1
+            if last_height is None:
+                prev_hash = '0' * 64
+            else:
+                prev_block = Block.objects.get(height=last_height)
+                prev_hash = prev_block.hash
+            merkle = (instance.tx_hash or '').ljust(64, '0')[:64]
+            nonce = os.urandom(8).hex()
+            block = Block.objects.create(
+                height=next_height,
+                prev_hash=prev_hash,
+                merkle_root=merkle,
+                nonce=nonce
+            )
+        instance.block = block
         instance.status = Transaction.STATUS_CONFIRMED
         instance.save(update_fields=['block', 'status'])
         return instance

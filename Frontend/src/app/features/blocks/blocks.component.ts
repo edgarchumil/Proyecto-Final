@@ -180,15 +180,27 @@ export class BlocksComponent implements OnInit, OnDestroy {
     this.infoMessage = null;
     this.rowMiningId = block.id;
     this.mining = true;
+    const remainingMocks = this.blocks.filter(b => b.id < 0 && b.id !== block.id);
+    this.blocks = [...remainingMocks, ...this.blocks.filter(b => b.id >= 0)];
     this.service.create({ merkle_root: block.merkle_root, nonce: block.nonce }).subscribe({
-      next: () => {
+      next: (created) => {
         this.mining = false;
         this.rowMiningId = null;
         const message = `Bloque demo #${block.height} minado.`;
-        this.blocks = this.blocks.filter(b => b.id !== block.id);
-        if (!this.blocks.length) {
-          this.refresh();
+        if (remainingMocks.length) {
+          try { localStorage.setItem('mockBlockCount', String(remainingMocks.length)); } catch {}
+        } else {
+          this.clearMockBlockCount();
         }
+        this.service.list().subscribe({
+          next: (realBlocks) => {
+            const sortedReal = [...realBlocks].sort((a, b) => b.height - a.height);
+            this.blocks = [...sortedReal, ...remainingMocks];
+          },
+          error: () => {
+            this.blocks = [...remainingMocks];
+          }
+        });
         this.loadMiningSummary(message);
       },
       error: (err: HttpErrorResponse) => {
@@ -200,6 +212,9 @@ export class BlocksComponent implements OnInit, OnDestroy {
           this.error = 'Datos inválidos al minar el bloque demo.';
         } else {
           this.error = 'No se pudo minar el bloque demo.';
+        }
+        if (!this.blocks.some(b => b.id === block.id)) {
+          this.blocks = [...this.blocks, block];
         }
       }
     });

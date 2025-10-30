@@ -28,6 +28,15 @@
 .ticker .btc { font-weight:600; color:#facc15; white-space:nowrap; }
 .ticker .refresh { margin-left:auto; }
 
+.success-banner {
+  padding:10px 14px;
+  background:rgba(34,197,94,.15);
+  border:1px solid rgba(34,197,94,.35);
+  color:#bbf7d0;
+  border-radius:12px;
+  font-weight:600;
+}
+
 .card {
   background:#121826;
   border:1px solid rgba(255,255,255,.06);
