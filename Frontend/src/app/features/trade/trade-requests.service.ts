@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import type { Transaction } from '../txs/transactions.service';
 
 export interface TradeRequest {
   id: number;
@@ -9,6 +10,7 @@ export interface TradeRequest {
   side: 'BUY'|'SELL';
   amount: string;
   fee: string;
+  currency: 'SIM'|'USD'|'BTC';
   status: 'PENDING'|'APPROVED'|'REJECTED'|'CANCELLED';
   created_at: string;
   requester: number;
@@ -17,7 +19,17 @@ export interface TradeRequest {
   counterparty_username: string;
 }
 
-export interface CreateTradeRequestPayload { counterparty: number; side: 'BUY'|'SELL'; amount: number; fee?: number; }
+export interface CreateTradeRequestPayload {
+  counterparty: number;
+  side: 'BUY'|'SELL';
+  amount: number;
+  fee?: number;
+  currency?: 'SIM'|'USD'|'BTC';
+  password: string;
+  [extra: string]: any;
+}
+export interface WalletBalancePatch { wallet_id: number; user_id: number; balances: Record<string, string>; }
+export interface TradeApproveResponse { request: TradeRequest; tx: Transaction; wallets?: { requester: WalletBalancePatch; counterparty: WalletBalancePatch; }; }
 
 @Injectable({ providedIn: 'root' })
 export class TradeRequestsService {
@@ -30,7 +42,8 @@ export class TradeRequestsService {
     return this.http.get<TradeRequest[]>(this.base, { params });
   }
   create(p: CreateTradeRequestPayload): Observable<TradeRequest> { return this.http.post<TradeRequest>(this.base, p); }
-  approve(id: number): Observable<{request: TradeRequest; tx: any}> { return this.http.post<{request: TradeRequest; tx: any}>(`${this.base}${id}/approve/`, {}); }
+  approve(id: number, password: string): Observable<TradeApproveResponse> {
+    return this.http.post<TradeApproveResponse>(`${this.base}${id}/approve/`, { password });
+  }
   reject(id: number): Observable<TradeRequest> { return this.http.post<TradeRequest>(`${this.base}${id}/reject/`, {}); }
 }
-
