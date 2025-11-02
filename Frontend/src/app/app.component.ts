@@ -1,9 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { RouterOutlet, Router } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { TopbarComponent } from './layout/topbar/topbar.component';
 import { AuthService } from './core/auth.service';
 import { PreloaderService } from './core/preloader.service';
+import { Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +16,7 @@ import { PreloaderService } from './core/preloader.service';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly tabId: string;
+  private navSub?: Subscription;
 
   private onStorage = (e: StorageEvent) => {
     if (e.storageArea !== localStorage) {
@@ -45,6 +48,16 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.preloader.show();
+    this.navSub = this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        take(1)
+      )
+      .subscribe(() => {
+        setTimeout(() => this.preloader.hide(), 350);
+      });
+
     const activeOwner = localStorage.getItem('activeTabId');
     if (this.auth.isAuthenticated()) {
       if (!activeOwner) {
@@ -59,6 +72,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('storage', this.onStorage);
+    this.navSub?.unsubscribe();
   }
 
   private ensureTabId(): string {
