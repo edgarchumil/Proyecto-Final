@@ -220,6 +220,8 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+    border-radius: 12px;
+    padding: 12px 14px;
   }
   .ticker .refresh {
     width: 100%;
@@ -254,6 +256,32 @@
   .hub .hub__grid {
     gap: 10px;
     padding-bottom: 6px;
+    scroll-snap-type: x mandatory;
+  }
+  .hub .hub__grid .tile {
+    scroll-snap-align: start;
+    min-width: 200px;
+  }
+  .panel {
+    padding: 16px;
+  }
+  .panel h3 {
+    font-size: 1.05rem;
+  }
+  .panel__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .kpis {
+    gap: 8px;
+  }
+  .panel.activity .table th,
+  .panel.activity .table td {
+    font-size: .78rem;
+  }
+  .panel.notice {
+    text-align: left;
   }
 }
 
