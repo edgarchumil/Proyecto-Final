@@ -5,6 +5,7 @@ from rest_framework import serializers  # type: ignore
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(max_length=150, validators=[])
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
@@ -24,9 +25,21 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('La contraseña debe incluir al menos un símbolo.')
         return value
 
+    def validate_username(self, value: str) -> str:
+        cleaned = re.sub(r'\s+', ' ', value or '').strip()
+        if not cleaned:
+            raise serializers.ValidationError('El usuario es obligatorio.')
+        normalized = cleaned.replace(' ', '_')
+        if not re.match(r'^[\w.@+-]+$', normalized):
+            raise serializers.ValidationError('Solo se permiten letras, números y los símbolos @/./+/-/_.')
+        if User.objects.filter(username__iexact=normalized).exists():
+            raise serializers.ValidationError('Este usuario ya existe. Elige otro nombre.')
+        return normalized
+
     def create(self, validated_data):
+        username = validated_data.pop('username')
         return User.objects.create_user(
-            username=validated_data['username'],
+            username=username,
             email=validated_data.get('email', ''),
             password=validated_data['password']
         )
