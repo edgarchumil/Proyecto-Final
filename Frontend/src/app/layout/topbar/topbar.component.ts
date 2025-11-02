@@ -15,6 +15,10 @@ interface NotificationItem {
   detail: string;
   statusLabel: string;
   statusClass: 'pending' | 'confirmed' | 'failed' | 'request';
+  requesterUsername?: string;
+  amount?: string;
+  fee?: string;
+  side?: 'BUY' | 'SELL';
 }
 
 @Component({
@@ -119,7 +123,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.open = false;
     const extras = item.type === 'transaction'
       ? { queryParams: { focus: item.refId } }
-      : undefined;
+      : { queryParams: { request: item.refId } };
     this.router.navigate(['/txs'], extras).catch(() => {});
   }
 
@@ -195,7 +199,11 @@ export class TopbarComponent implements OnInit, OnDestroy {
             title: `Solicitud P2P: @${req.requester_username} ${action}`,
             detail: `${this.formatAmount(req.amount)} SIM · Fee ${this.formatAmount(req.fee)}`,
             statusLabel: 'Solicitud',
-            statusClass: 'request'
+            statusClass: 'request',
+            requesterUsername: req.requester_username,
+            amount: this.formatAmount(req.amount),
+            fee: this.formatAmount(req.fee),
+            side: req.side
           };
         });
         const merged = [...txNotifications, ...requestNotifications]
@@ -238,6 +246,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
       this.notifTimer = undefined;
     }
   }
+
 
   private formatAmount(value: unknown): string {
     const num = Number(value ?? 0);

@@ -15,7 +15,7 @@ export interface Transaction {
   to_username?: string;
   amount: string;
   fee: string;
-  currency?: string;
+  currency: 'SIM' | 'USD' | 'BTC';
   tx_hash: string;
   status: 'PENDING' | 'CONFIRMED' | 'FAILED';
   block: number | null;
@@ -28,6 +28,7 @@ export interface CreateTransactionPayload {
   to_user?: number;        // id de usuario destino
   amount: number;
   fee: number;
+  currency?: 'SIM' | 'USD' | 'BTC';
 }
 
 @Injectable({ providedIn: 'root' })

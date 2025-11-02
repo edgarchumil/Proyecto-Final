@@ -1,6 +1,8 @@
 import os, base64, hashlib
 from rest_framework import serializers
 from .models import Wallet
+from transactions.utils import wallet_available_balance
+from transactions.models import Transaction
 
 def _gen_keypair():
     """
@@ -33,8 +35,28 @@ class WalletCreateSerializer(serializers.ModelSerializer):
         )
 
 class WalletSerializer(serializers.ModelSerializer):
+    balance = serializers.SerializerMethodField()
+    balance_sim = serializers.SerializerMethodField()
+    balance_usd = serializers.SerializerMethodField()
+    balance_btc = serializers.SerializerMethodField()
+
     class Meta:
         model = Wallet
         # OJO: no exponemos priv_key_enc
-        fields = ('id', 'name', 'pub_key', 'created_at')
+        fields = ('id', 'name', 'pub_key', 'created_at', 'balance', 'balance_sim', 'balance_usd', 'balance_btc')
         read_only_fields = ('id', 'pub_key', 'created_at')
+
+    def get_balance(self, obj: Wallet) -> str:
+        return self.get_balance_sim(obj)
+
+    def get_balance_sim(self, obj: Wallet) -> str:
+        balance = wallet_available_balance(obj.id, Transaction.CURRENCY_SIM)
+        return format(balance, '.2f')
+
+    def get_balance_usd(self, obj: Wallet) -> str:
+        balance = wallet_available_balance(obj.id, Transaction.CURRENCY_USD)
+        return format(balance, '.2f')
+
+    def get_balance_btc(self, obj: Wallet) -> str:
+        balance = wallet_available_balance(obj.id, Transaction.CURRENCY_BTC)
+        return format(balance, '.2f')

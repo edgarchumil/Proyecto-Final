@@ -2,7 +2,7 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -61,10 +61,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   holdingsUsd: number | null = null;
   confirmedCount = 0;
   pendingCount = 0;
+  simUsdRate: number | null = null;
+  usdSimRate: number | null = null;
+  simBtcRate: number | null = null;
+  btcSimRate: number | null = null;
+  btcUsdRate: number | null = null;
+  usdBtcRate: number | null = null;
 
   walletSummaries: WalletSummary[] = [];
   visibleWallets: WalletSummary[] = [];
   totalBalance = 0;
+  totalUsdBalance = 0;
+  totalBtcBalance: number | null = null;
   totalHoldingsBtc: number | null = null;
   minedAttempts = 0;
   recentTransactions: Transaction[] = [];
@@ -76,6 +84,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingMetrics = false;
   welcomeBanner = false;
   purchaseSuccess = false;
+  showTradeModal = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -86,7 +95,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private auditApi: AuditService,
     public tradeReqApi: TradeRequestsService,
     private auth: AuthService,
-    private preloader: PreloaderService
+    private preloader: PreloaderService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -109,8 +119,21 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.priceTimer = setInterval(() => {
       this.priceApi.latest().subscribe({
         next: (t) => {
-          this.lastPrice = this.round2(Number(t.price_usd));
-          this.holdingsUsd = this.lastPrice != null ? this.round2(this.totalBalance * this.lastPrice) : null;
+          const latest = this.round2(Number(t.price_usd));
+          this.lastPrice = latest;
+          if (latest != null && latest > 0) {
+            this.holdingsUsd = this.round2(this.totalBalance * latest);
+            this.simUsdRate = latest;
+            this.usdSimRate = this.round2(1 / latest);
+            this.simBtcRate = this.round8(latest / this.btcUsdReference);
+            this.btcSimRate = this.round2(this.btcUsdReference / latest);
+          } else {
+            this.holdingsUsd = null;
+            this.simUsdRate = null;
+            this.usdSimRate = null;
+            this.simBtcRate = null;
+            this.btcSimRate = null;
+          }
         },
         error: () => {}
       });
@@ -153,8 +176,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.notifications = notices;
 
         this.walletSummaries = this.buildWalletSummaries(wallets, txs);
-        this.totalBalance = this.round2(this.walletSummaries.reduce((acc, item) => acc + item.balance, 0));
+        const totalSim = wallets.reduce((acc, item) => acc + Math.max(0, Number(item.balance_sim ?? item.balance ?? 0)), 0);
+        const totalUsd = wallets.reduce((acc, item) => acc + Math.max(0, Number(item.balance_usd ?? 0)), 0);
+        const totalBtc = wallets.reduce((acc, item) => acc + Math.max(0, Number(item.balance_btc ?? 0)), 0);
         const minedBtc = this.roundBtc(mining?.total_btc ?? 0);
+        this.totalBalance = this.round2(totalSim);
+        this.totalUsdBalance = this.round2(totalUsd);
+        this.totalBtcBalance = this.roundBtc(totalBtc);
         this.totalHoldingsBtc = null;
         this.minedAttempts = mining?.total_attempts ?? 0;
         this.setupWalletViewport();
@@ -175,14 +203,27 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.priceChangePct = (latestPrice !== null && firstPrice && firstPrice !== 0)
           ? this.round2(((latestPrice - firstPrice) / firstPrice) * 100)
           : null;
-        if (this.lastPrice != null) {
-          const usdBalance = this.round2(this.totalBalance * this.lastPrice);
-          this.holdingsUsd = usdBalance;
-          const btcFromSim = usdBalance / this.btcUsdReference;
-          this.totalHoldingsBtc = this.roundBtc(btcFromSim + minedBtc);
+        this.btcUsdRate = this.round2(this.btcUsdReference);
+        this.usdBtcRate = this.round8(1 / this.btcUsdReference);
+        if (this.lastPrice != null && this.lastPrice > 0) {
+          const usdFromSim = this.round2(totalSim * this.lastPrice);
+          const usdFromUsd = this.round2(totalUsd);
+          const usdFromBtc = this.round2(totalBtc * this.btcUsdReference);
+          const usdFromMined = this.round2(minedBtc * this.btcUsdReference);
+          this.holdingsUsd = this.round2(usdFromSim + usdFromUsd + usdFromBtc + usdFromMined);
+          const btcFromSim = this.btcUsdReference ? usdFromSim / this.btcUsdReference : 0;
+          this.totalHoldingsBtc = this.roundBtc(btcFromSim + totalBtc + minedBtc);
+          this.simUsdRate = this.lastPrice;
+          this.usdSimRate = this.round2(1 / this.lastPrice);
+          this.simBtcRate = this.round8(this.lastPrice / this.btcUsdReference);
+          this.btcSimRate = this.round2(this.btcUsdReference / this.lastPrice);
         } else {
-          this.holdingsUsd = null;
-          this.totalHoldingsBtc = minedBtc || null;
+          this.holdingsUsd = this.round2(totalUsd + (this.btcUsdReference * (totalBtc + minedBtc)));
+          this.totalHoldingsBtc = this.roundBtc(totalBtc + minedBtc);
+          this.simUsdRate = null;
+          this.usdSimRate = null;
+          this.simBtcRate = null;
+          this.btcSimRate = null;
         }
 
         this.loadingMetrics = false;
@@ -194,22 +235,27 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private buildWalletSummaries(wallets: Wallet[], txs: Transaction[]): WalletSummary[] {
-    const balances = new Map<number, number>();
-    wallets.forEach(w => balances.set(w.id, 0));
+  openTradePrompt(event: Event): void {
+    event.preventDefault();
+    this.showTradeModal = true;
+  }
 
+  closeTradePrompt(): void {
+    this.showTradeModal = false;
+  }
+
+  goToTrade(side: 'buy' | 'sell'): void {
+    this.showTradeModal = false;
+    this.router.navigate(['/trade'], { queryParams: { side } }).catch(() => {});
+  }
+
+  private buildWalletSummaries(wallets: Wallet[], txs: Transaction[]): WalletSummary[] {
     this.confirmedCount = 0;
     this.pendingCount = 0;
 
     txs.forEach(tx => {
       if (tx.status === 'CONFIRMED') {
         this.confirmedCount += 1;
-        const amountCents = this.toCents(tx.amount);
-        const feeCents = this.toCents(tx.fee);
-        const fromBalance = balances.get(tx.from_wallet) ?? 0;
-        balances.set(tx.from_wallet, Math.max(0, fromBalance - (amountCents + feeCents)));
-        const toBalance = balances.get(tx.to_wallet) ?? 0;
-        balances.set(tx.to_wallet, toBalance + amountCents);
       } else if (tx.status === 'PENDING') {
         this.pendingCount += 1;
       }
@@ -217,7 +263,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     return wallets.map(wallet => ({
       wallet,
-      balance: this.round2(Math.max(0, (balances.get(wallet.id) ?? 0) / 100))
+      balance: this.round2(Math.max(0, Number(wallet.balance_sim ?? wallet.balance ?? 0)))
     }));
   }
 
@@ -272,7 +318,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const labels = this.priceSeries.map(t => new Date(t.ts).toLocaleString());
-    const data = this.priceSeries.map(t => Number(t.price_usd));
+    const data = this.priceSeries.map(t => this.round2(Number(t.price_usd)));
 
     this.chart?.destroy();
     this.chart = new Chart(ctx, {
@@ -303,7 +349,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Notificaciones P2P: helpers para botones del template
   approveReq(id: number): void {
-    this.tradeReqApi.approve(id).subscribe({ next: () => this.loadMetrics() });
+    const password = window.prompt('Ingresa tu contraseña para aprobar la solicitud P2P');
+    if (!password || !password.trim()) {
+      return;
+    }
+    this.tradeReqApi.approve(id, password.trim()).subscribe({
+      next: () => this.loadMetrics()
+    });
   }
 
   rejectReq(id: number): void {
@@ -352,16 +404,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private toCents(value: unknown): number {
-    const num = Number(value ?? 0);
-    if (!Number.isFinite(num)) {
-      return 0;
-    }
-    return Math.round(num * 100);
-  }
-
   private round2(value: number): number {
     return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private round8(value: number): number {
+    return Math.round((value + Number.EPSILON) * 1e8) / 1e8;
   }
 
   private roundBtc(value: unknown): number {

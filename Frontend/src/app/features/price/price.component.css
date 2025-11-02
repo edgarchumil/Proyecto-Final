@@ -12,25 +12,6 @@
 .feature-card h2{ margin:0 0 12px; }
 .muted{ opacity:.85; }
 
-.form{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap:12px;
-  margin-bottom:16px;
-  background:rgba(15,23,42,.6);
-  padding:16px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.08);
-}
-.field{ display:flex; flex-direction:column; gap:6px; }
-.field label{ font-size:12px; text-transform:uppercase; opacity:.65; }
-.field input{
-  background:#0f172a;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:10px;
-  padding:10px;
-  color:#e5e7eb;
-}
 .btn.primary{ justify-self:end; align-self:end; padding:10px 14px; border-radius:12px; border:1px solid rgba(56,189,248,.5); background:#38bdf8; color:#0f172a; font-weight:600; }
 .btn{ display:inline-flex; align-items:center; gap:6px; padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:#e5e7eb; cursor:pointer; transition: all .15s ease; }
 .btn.outline{ background:transparent; }

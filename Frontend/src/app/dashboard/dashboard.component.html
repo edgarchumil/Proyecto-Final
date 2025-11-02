@@ -1,7 +1,7 @@
 <div class="exchange">
   <!-- Barra tipo ticker -->
   <div class="ticker">
-    <div class="pair">{{ currentUsername ? (currentUsername + ' • fondos') : 'Tus fondos' }}</div>
+    <div class="pair">{{ currentUsername ? (currentUsername + ' • Tus fondos') : 'Tus fondos' }}</div>
     <div class="last">{{ totalBalance | number:'1.2-2' }} SIM</div>
     <div class="change">
       ≈ {{ holdingsUsd !== null ? (holdingsUsd | number:'1.2-2') : '—' }} USD
@@ -89,6 +89,41 @@
       </table>
       <p class="muted" *ngIf="!recentTransactions.length">Sin actividad aún.</p>
     </section>
+
+    <section class="panel rates">
+      <h3>Equivalencias de moneda</h3>
+      <p class="rate-note">Valores aproximados según el último precio SIM/USD y la referencia BTC.</p>
+      <table class="conversion-table">
+        <thead>
+          <tr>
+            <th>Base</th>
+            <th>USD</th>
+            <th>BTC</th>
+            <th>SIM</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1 SIM</td>
+            <td>{{ simUsdRate !== null ? (simUsdRate | number:'1.2-2') : '—' }}</td>
+            <td>{{ simBtcRate !== null ? (simBtcRate | number:'1.2-2') : '—' }}</td>
+            <td>{{ 1 | number:'1.2-2' }}</td>
+          </tr>
+          <tr>
+            <td>1 USD</td>
+            <td>{{ 1 | number:'1.2-2' }}</td>
+            <td>{{ usdBtcRate !== null ? (usdBtcRate | number:'1.2-2') : '—' }}</td>
+            <td>{{ usdSimRate !== null ? (usdSimRate | number:'1.2-2') : '—' }}</td>
+          </tr>
+          <tr>
+            <td>1 BTC</td>
+            <td>{{ btcUsdRate !== null ? (btcUsdRate | number:'1.2-2') : '—' }}</td>
+            <td>{{ 1 | number:'1.2-2' }}</td>
+            <td>{{ btcSimRate !== null ? (btcSimRate | number:'1.2-2') : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
   </div>
 
   <!-- Accesos (parte inferior) -->
@@ -97,9 +132,24 @@
       <a class="tile" routerLink="/wallets"><h4>Wallets</h4><p class="muted">Administra tus billeteras</p><span class="pill">{{ walletsCount ?? 0 }}</span></a>
       <a class="tile" routerLink="/txs"><h4>Transacciones</h4><p class="muted">Envíos, recibos, fees</p><span class="pill">{{ txCount ?? 0 }}</span></a>
       <a class="tile" routerLink="/blocks"><h4>Bloques</h4><p class="muted">Altura, merkle root</p><span class="pill">{{ blockCount ?? 0 }}</span></a>
-      <a class="tile" routerLink="/trade"><h4>Trade</h4><p class="muted">Comprar / Vender SIM</p><span class="pill">Go</span></a>
+      <a class="tile" href="#" (click)="openTradePrompt($event)"><h4>Trade</h4><p class="muted">Comprar / Vender SIM</p><span class="pill">Go</span></a>
       <a class="tile" routerLink="/price"><h4>Precio</h4><p class="muted">Serie SIM/USD</p><span class="pill">{{ lastPrice ? (lastPrice | number:'1.2-2') : '—' }}</span></a>
-      <a class="tile" routerLink="/audit"><h4>Audit Log</h4><p class="muted">Acciones del sistema</p><span class="pill">{{ auditCount ?? 0 }}</span></a>
+      <a class="tile" routerLink="/audit"><h4>Auditoría de Acciones</h4><p class="muted">Acciones del sistema</p><span class="pill">{{ auditCount ?? 0 }}</span></a>
     </div>
   </section>
+
+  <div class="trade-modal" *ngIf="showTradeModal">
+    <div class="trade-modal__backdrop" (click)="closeTradePrompt()"></div>
+    <div class="trade-modal__card" (click)="$event.stopPropagation()">
+      <header>
+        <h3>¿Qué deseas hacer?</h3>
+        <button type="button" class="close" (click)="closeTradePrompt()">&times;</button>
+      </header>
+      <p>Elige si quieres comprar o vender SIM.</p>
+      <div class="trade-modal__actions">
+        <button type="button" class="btn outline trade-btn trade-btn--buy" (click)="goToTrade('buy')">Comprar</button>
+        <button type="button" class="btn outline trade-btn trade-btn--sell" (click)="goToTrade('sell')">Vender</button>
+      </div>
+    </div>
+  </div>
 </div>

@@ -1,6 +1,5 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { PriceService, PriceTick } from './price.service';
 import {
   Chart, LineController, LineElement, PointElement,
@@ -13,7 +12,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
 @Component({
   selector: 'app-price',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, DatePipe],
   templateUrl: './price.component.html',
   styleUrls: ['./price.component.css']
 })
@@ -24,16 +23,10 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
   chart?: Chart;
   private timer?: any;
 
-  form = {
-    price_usd: 1,
-    ts: new Date().toISOString().slice(0, 16),
-  };
   showAll = false;
-
   get visibleTicks(): PriceTick[] {
     return this.showAll ? this.ticks : this.ticks.slice(0, 10);
   }
-
   constructor(private price: PriceService) {}
 
   ngAfterViewInit(): void {
@@ -52,7 +45,7 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
     this.error = null;
     this.price.list().subscribe({
       next: data => {
-        this.ticks = data;
+        this.ticks = [...data].sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
         this.loading = false;
         this.renderChart();
       },
@@ -63,35 +56,16 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  addTick(): void {
-    const normalized = this.round2(Number(this.form.price_usd));
-    if (!Number.isFinite(normalized) || normalized <= 0) {
-      this.error = 'Ingresa un precio válido.';
-      return;
-    }
-    this.error = null;
-    const payload = {
-      ts: new Date(this.form.ts).toISOString(),
-      price_usd: normalized,
-    };
-    this.price.create(payload).subscribe({
-      next: tick => {
-        this.ticks = [tick, ...this.ticks];
-        this.renderChart();
-        this.form.ts = new Date().toISOString().slice(0, 16);
-        this.form.price_usd = normalized;
-      },
-      error: () => this.error = 'No se pudo registrar el precio.'
-    });
-  }
-
   private simulateOnce(): void {
     const last = this.ticks[0] ? Number(this.ticks[0].price_usd) : 20;
     // random walk: variación entre -3% y +3%
     const pct = (Math.random() - 0.5) * 0.06;
     const next = Math.max(0.1, this.round2(last * (1 + pct)));
     const ts = new Date().toISOString();
-    this.price.create({ ts, price_usd: next }).subscribe({
+    const priceBtc = this.round8(next / 68000 * (1 + (Math.random() - 0.5) * 0.02));
+    const volumeSim = this.round2(12000 + Math.random() * 15000);
+    const note = this.pickNote();
+    this.price.create({ ts, price_usd: next, price_btc: priceBtc, volume_sim: volumeSim, notes: note }).subscribe({
       next: tick => { this.ticks = [tick, ...this.ticks].slice(0, 100); this.renderChart(); },
       error: () => { /* silencioso: puede fallar si no hay auth */ }
     });
@@ -104,8 +78,9 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
     if (!ctx) return;
 
     const sorted = [...this.ticks].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
-    const labels = sorted.map(t => new Date(t.ts).toLocaleString());
-    const data = sorted.map(t => this.round2(Number(t.price_usd)));
+    const recent = sorted.slice(-20);
+    const labels = recent.map(t => new Date(t.ts).toLocaleString());
+    const data = recent.map(t => this.round2(Number(t.price_usd)));
 
     this.chart?.destroy();
     this.chart = new Chart(ctx, {
@@ -140,5 +115,29 @@ export class PriceComponent implements AfterViewInit, OnDestroy {
       return 0;
     }
     return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private round8(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.round((value + Number.EPSILON) * 1e8) / 1e8;
+  }
+
+  private pickNote(): string {
+    const notes = [
+      'Volumen institucional destacado',
+      'Mercado asiático en sesión alcista',
+      'Cobertura tras publicación de PMI',
+      'Rumores de ETF impulsan compras',
+      'Corrección técnica intradía',
+      'Entrada de liquidez desde OTC',
+      'Sesión europea con fuerte volatilidad',
+      'Rebalanceo de portafolios de fondos',
+      'Soporte crítico defendido por traders',
+      'Flujo mixto en exchanges locales'
+    ];
+    const idx = Math.floor(Math.random() * notes.length);
+    return notes[idx];
   }
 }

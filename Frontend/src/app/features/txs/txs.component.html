@@ -4,6 +4,27 @@
 
     <div *ngIf="error" class="error">{{ error }}</div>
 
+    <div class="requests-panel" *ngIf="incomingRequests.length || requestError">
+      <h3>Solicitudes P2P pendientes</h3>
+      <div *ngIf="requestError" class="error">{{ requestError }}</div>
+      <p class="muted" *ngIf="!incomingRequests.length && !requestError">Sin solicitudes pendientes.</p>
+      <div class="request-card" *ngFor="let req of incomingRequests" [class.focus]="focusRequestId===req.id">
+        <div>
+          <div class="request-title">
+            <strong>@{{ req.requester_username }}</strong>
+            <span>{{ req.side === 'SELL' ? 'quiere venderte' : 'quiere comprarte' }}</span>
+          </div>
+          <div class="muted small">
+            {{ req.created_at | date:'medium' }} · {{ (+req.amount) | number:'1.2-2' }} {{ req.currency || 'SIM' }} · Fee {{ (+req.fee) | number:'1.2-2' }} {{ req.currency || 'SIM' }}
+          </div>
+        </div>
+        <div class="request-actions">
+          <button class="btn small" type="button" (click)="approveRequest(req)" [disabled]="isProcessingRequest(req.id)">Aceptar</button>
+          <button class="btn small outline" type="button" (click)="rejectRequest(req)" [disabled]="isProcessingRequest(req.id)">Rechazar</button>
+        </div>
+      </div>
+    </div>
+
     <div *ngIf="loading" class="skeleton-list"><div class="skeleton-row" *ngFor="let _ of [1,2,3,4,5]"></div></div>
 
     <table *ngIf="!loading && visibleTransactions.length" class="table">
@@ -32,8 +53,8 @@
             <div>{{ tx.to_wallet_name || '-' }} (#{{ tx.to_wallet }})</div>
             <small class="muted">@{{ tx.to_username || '—' }} (user #{{ tx.to_user || '—' }})</small>
           </td>
-          <td>{{ tx.amount | number:'1.2-2' }}</td>
-          <td>{{ tx.fee | number:'1.2-2' }}</td>
+          <td>{{ tx.amount | number:'1.2-2' }} {{ tx.currency }}</td>
+          <td>{{ tx.fee | number:'1.2-2' }} {{ tx.currency }}</td>
           <td><span class="status" [class.pending]="tx.status==='PENDING'" [class.confirmed]="tx.status==='CONFIRMED'" [class.failed]="tx.status==='FAILED'">{{ tx.status }}</span></td>
           <td>{{ tx.block ?? '—' }}</td>
           <td>
@@ -55,3 +76,28 @@
     <p class="muted" *ngIf="!loading && !transactions.length">Aún no hay transacciones.</p>
   </div>
 </section>
+
+<div class="approve-modal" *ngIf="showApproveModal">
+  <div class="approve-modal__backdrop" (click)="closeApproveModal()"></div>
+  <div class="approve-modal__content" (click)="$event.stopPropagation()">
+    <header class="approve-modal__header">
+      <h3>Confirmar solicitud P2P</h3>
+      <button type="button" class="close" (click)="closeApproveModal()" [disabled]="approveProcessing">&times;</button>
+    </header>
+    <p class="muted" *ngIf="pendingApproveRequest">
+      @{{ pendingApproveRequest.requester_username }} {{ pendingApproveRequest.side === 'SELL' ? 'quiere venderte' : 'quiere comprarte' }} ·
+      {{ (+pendingApproveRequest.amount) | number:'1.2-2' }} {{ pendingApproveRequest.currency || 'SIM' }}
+    </p>
+    <div class="field">
+      <label for="approvePassword">Contraseña</label>
+      <input id="approvePassword" type="password" [(ngModel)]="approvePassword" [disabled]="approveProcessing" (keyup.enter)="confirmApprove()" autocomplete="current-password">
+    </div>
+    <div class="error" *ngIf="approveError">{{ approveError }}</div>
+    <div class="approve-modal__actions">
+      <button class="btn small outline" type="button" (click)="closeApproveModal()" [disabled]="approveProcessing">Cancelar</button>
+      <button class="btn small" type="button" (click)="confirmApprove()" [disabled]="approveProcessing">
+        {{ approveProcessing ? 'Validando…' : 'Confirmar' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -7,6 +7,9 @@ export interface PriceTick {
   id: number;
   ts: string;
   price_usd: string;
+  price_btc?: string | null;
+  volume_sim?: string | null;
+  notes?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,7 +26,7 @@ export class PriceService {
     return this.http.get<PriceTick>(`${this.base}latest/`);
   }
 
-  create(payload: { ts: string; price_usd: number }): Observable<PriceTick> {
+  create(payload: { ts: string; price_usd: number; price_btc?: number | null; volume_sim?: number | null; notes?: string }): Observable<PriceTick> {
     return this.http.post<PriceTick>(this.base, payload);
   }
 }

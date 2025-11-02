@@ -1,11 +1,12 @@
 import os, hashlib
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import transaction as dbtx
-from django.db.models import Max, Sum
+from django.db.models import Max
 from rest_framework import serializers
 from .models import Transaction, TradeRequest
 from wallets.models import Wallet
 from blocks.models import Block
+from .utils import wallet_available_balance
 
 TWOPLACES = Decimal('0.01')
 
@@ -17,9 +18,10 @@ def _compute_tx_hash(from_id: int, to_id: int, amount: Decimal, fee: Decimal, sa
 class TransactionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ('from_wallet', 'to_wallet', 'amount', 'fee')  # el servidor genera tx_hash y status
+        fields = ('from_wallet', 'to_wallet', 'amount', 'fee', 'currency')  # el servidor genera tx_hash y status
         extra_kwargs = {
-            'fee': {'required': False, 'default': Decimal('0')}
+            'fee': {'required': False, 'default': Decimal('0')},
+            'currency': {'required': False, 'default': Transaction.CURRENCY_SIM}
         }
 
     def validate(self, data):
@@ -31,6 +33,11 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
 
         amount = data.get('amount')
         fee = data.get('fee', Decimal('0'))
+        currency = (data.get('currency') or Transaction.CURRENCY_SIM).upper()
+        valid_currencies = {choice[0] for choice in Transaction.CURRENCY_CHOICES}
+        if currency not in valid_currencies:
+            raise serializers.ValidationError({'currency': 'Moneda inválida.'})
+
         if amount is None:
             raise serializers.ValidationError('amount es requerido.')
         if amount <= 0:
@@ -41,11 +48,12 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
 
         data['amount'] = Decimal(str(amount)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
         data['fee'] = Decimal(str(fee)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+        data['currency'] = currency
 
         if getattr(from_w.user, 'username', '') == 'market':
             return data
 
-        available = self._available_balance(from_w.id)
+        available = self._available_balance(from_w.id, currency)
         total_debit = data['amount'] + data['fee']
         if total_debit > available:
             raise serializers.ValidationError({'detail': 'Fondos insuficientes para completar la transacción.'})
@@ -56,23 +64,8 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
 
         return data
 
-    def _available_balance(self, wallet_id: int) -> Decimal:
-        def agg(qs, field):
-            return qs.aggregate(total=Sum(field))['total'] or Decimal('0')
-
-        confirmed = Transaction.objects.filter(status=Transaction.STATUS_CONFIRMED)
-        pending = Transaction.objects.filter(status=Transaction.STATUS_PENDING)
-
-        incoming = agg(confirmed.filter(to_wallet_id=wallet_id), 'amount')
-        outgoing = agg(confirmed.filter(from_wallet_id=wallet_id), 'amount')
-        outgoing_fee = agg(confirmed.filter(from_wallet_id=wallet_id), 'fee')
-        pending_out = agg(pending.filter(from_wallet_id=wallet_id), 'amount')
-        pending_fee = agg(pending.filter(from_wallet_id=wallet_id), 'fee')
-
-        available = incoming - outgoing - outgoing_fee - pending_out - pending_fee
-        if available < 0:
-            return Decimal('0')
-        return available
+    def _available_balance(self, wallet_id: int, currency: str) -> Decimal:
+        return wallet_available_balance(wallet_id, currency)
 
     @dbtx.atomic
     def create(self, validated_data):
@@ -101,7 +94,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             'id',
             'from_wallet', 'from_wallet_name', 'from_user', 'from_username',
             'to_wallet', 'to_wallet_name', 'to_user', 'to_username',
-            'amount', 'fee', 'tx_hash', 'status', 'block', 'created_at'
+            'amount', 'fee', 'currency', 'tx_hash', 'status', 'block', 'created_at'
         )
         read_only_fields = ('id', 'tx_hash', 'status', 'block', 'created_at')
 
@@ -157,22 +150,43 @@ class TradeRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = TradeRequest
         fields = (
-            'id', 'token', 'side', 'amount', 'fee', 'status', 'created_at',
+            'id', 'token', 'side', 'amount', 'fee', 'currency', 'status', 'created_at',
             'requester', 'requester_username', 'counterparty', 'counterparty_username'
         )
         read_only_fields = ('id', 'token', 'status', 'created_at', 'requester')
 
 class TradeRequestCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
     class Meta:
         model = TradeRequest
-        fields = ('counterparty', 'side', 'amount', 'fee')
+        fields = ('counterparty', 'side', 'amount', 'fee', 'currency', 'password')
         extra_kwargs = {
-            'fee': {'required': False, 'default': Decimal('0')}
+            'fee': {'required': False, 'default': Decimal('0')},
+            'currency': {'required': False, 'default': Transaction.CURRENCY_SIM},
+            'password': {'write_only': True}
         }
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        if not password:
+            raise serializers.ValidationError({'password': 'Debes ingresar tu contraseña.'})
+        currency = (attrs.get('currency') or Transaction.CURRENCY_SIM).upper()
+        valid_currencies = {choice[0] for choice in Transaction.CURRENCY_CHOICES}
+        if currency not in valid_currencies:
+            raise serializers.ValidationError({'currency': 'Moneda inválida.'})
+        attrs['currency'] = currency
+        request = self.context.get('request')
+        if not request or not getattr(request, 'user', None):
+            raise serializers.ValidationError({'password': 'No se pudo validar la contraseña.'})
+        if not request.user.check_password(password):
+            raise serializers.ValidationError({'password': 'Contraseña incorrecta.'})
+        return attrs
 
     def create(self, validated_data):
         import secrets
         requester = self.context['request'].user
+        validated_data.pop('password', None)
         token = secrets.token_hex(16)
         amount = Decimal(str(validated_data.get('amount', Decimal('0')))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
         fee = Decimal(str(validated_data.get('fee', Decimal('0')))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)

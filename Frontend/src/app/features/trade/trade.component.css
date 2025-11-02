@@ -1,7 +1,26 @@
 .feature-center { display:flex; justify-content:center; align-items:center; min-height:calc(100vh - 120px); padding:24px; box-sizing:border-box; }
 .feature-card { width:min(620px, 100%); background:#121826; border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:24px; box-shadow:0 24px 40px rgba(8,15,28,.35); }
-.toggle { display:flex; gap:8px; margin-bottom:12px; }
-.btn.active { background:#16a34a; border-color:#16a34a; }
+.trade-mode { display:flex; gap:8px; margin:12px 0 18px; }
+.trade-mode button {
+  flex:1 1 0;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(15,23,42,.7);
+  color:#e5e7eb;
+  font-weight:600;
+  cursor:pointer;
+  transition:border .2s ease, background .2s ease, color .2s ease;
+}
+.trade-mode button.active {
+  border-color:rgba(59,130,246,.55);
+  background:rgba(59,130,246,.15);
+  color:#bfdbfe;
+}
+.trade-mode button:hover {
+  border-color:#facc15;
+  background:rgba(250,204,21,.08);
+}
 .buy-options { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
 .buy-option { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(15,23,42,.8); color:inherit; text-align:left; cursor:pointer; transition:border .2s ease, background .2s ease; }
 .buy-option .icon { font-size:1.4rem; }

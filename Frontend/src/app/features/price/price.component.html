@@ -21,12 +21,21 @@
     <div [class.table-scroll]="showAll">
       <table *ngIf="!loading && visibleTicks.length" class="table">
         <thead>
-          <tr><th>Fecha</th><th>Precio USD</th></tr>
+          <tr>
+            <th>Fecha</th>
+            <th>Precio USD</th>
+            <th>Precio BTC</th>
+            <th>Volumen SIM</th>
+            <th>Notas</th>
+          </tr>
         </thead>
         <tbody>
           <tr *ngFor="let t of visibleTicks">
             <td>{{ t.ts | date:'medium' }}</td>
             <td>{{ t.price_usd | number:'1.2-2' }}</td>
+            <td>{{ t.price_btc ? (t.price_btc | number:'1.2-2') : '—' }}</td>
+            <td>{{ t.volume_sim ? (t.volume_sim | number:'1.2-2') : '—' }}</td>
+            <td>{{ t.notes || '—' }}</td>
           </tr>
         </tbody>
       </table>

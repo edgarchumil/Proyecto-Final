@@ -3,6 +3,15 @@ from django.contrib.auth.models import User
 from decimal import Decimal
 
 class Transaction(models.Model):
+    CURRENCY_SIM = 'SIM'
+    CURRENCY_USD = 'USD'
+    CURRENCY_BTC = 'BTC'
+    CURRENCY_CHOICES = [
+        (CURRENCY_SIM, 'SIM'),
+        (CURRENCY_USD, 'USD'),
+        (CURRENCY_BTC, 'BTC'),
+    ]
+
     STATUS_PENDING   = 'PENDING'
     STATUS_CONFIRMED = 'CONFIRMED'
     STATUS_FAILED    = 'FAILED'
@@ -24,6 +33,7 @@ class Transaction(models.Model):
 
     amount = models.DecimalField(max_digits=28, decimal_places=2, default=Decimal('0'))
     fee    = models.DecimalField(max_digits=28, decimal_places=2, default=Decimal('0'))
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default=CURRENCY_SIM)
 
     tx_hash = models.CharField(max_length=64, unique=True, db_index=True)
     status  = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -43,10 +53,11 @@ class Transaction(models.Model):
             models.Index(fields=['created_at']),
             models.Index(fields=['from_wallet']),
             models.Index(fields=['to_wallet']),
+            models.Index(fields=['currency']),
         ]
 
     def __str__(self):
-        return f'{self.tx_hash[:10]}... {self.status}'
+        return f'{self.tx_hash[:10]}... {self.status} {self.currency}'
 
 
 class TradeRequest(models.Model):
@@ -56,6 +67,7 @@ class TradeRequest(models.Model):
         (SIDE_BUY, 'BUY'),
         (SIDE_SELL, 'SELL'),
     ]
+    CURRENCY_CHOICES = Transaction.CURRENCY_CHOICES
 
     STATUS_PENDING = 'PENDING'
     STATUS_APPROVED = 'APPROVED'
@@ -73,6 +85,7 @@ class TradeRequest(models.Model):
     side = models.CharField(max_length=4, choices=SIDE_CHOICES)
     amount = models.DecimalField(max_digits=28, decimal_places=2)
     fee = models.DecimalField(max_digits=28, decimal_places=2, default=Decimal('0'))
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default=Transaction.CURRENCY_SIM)
     token = models.CharField(max_length=64, unique=True, db_index=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)

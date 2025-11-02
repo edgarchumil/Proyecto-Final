@@ -6,7 +6,6 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { WalletService } from './wallet.service';
 import type { Wallet } from './wallet.service';
-import { TransactionsService, Transaction } from '../txs/transactions.service';
 import { PriceService, PriceTick } from '../price/price.service';
 
 @Component({
@@ -25,13 +24,12 @@ export class WalletsComponent implements OnInit {
   showCta = false;
   created?: Wallet;
   createdFirst = false;
-  private balanceMap = new Map<number, number>(); // almacena centavos
+  private balances = new Map<number, { SIM: number; USD: number; BTC: number }>();
   private simUsdPrice: number | null = null;
   private btcUsdReference = 68000; // referencia simple para conversión BTC
 
   constructor(
     private ws: WalletService,
-    private txs: TransactionsService,
     private prices: PriceService
   ) {}
 
@@ -42,12 +40,11 @@ export class WalletsComponent implements OnInit {
     this.error = null;
     forkJoin({
       wallets: this.ws.list(),
-      txs: this.txs.list().pipe(catchError(() => of([] as Transaction[]))),
       price: this.prices.latest().pipe(catchError(() => of(null as PriceTick | null)))
     }).subscribe({
-      next: ({ wallets, txs, price }) => {
+      next: ({ wallets, price }) => {
         this.wallets = wallets;
-        this.computeBalances(wallets, txs);
+        this.computeBalances(wallets);
         this.simUsdPrice = price ? Number(price.price_usd) : null;
         this.loading = false;
         try {
@@ -89,46 +86,41 @@ export class WalletsComponent implements OnInit {
   }
 
   balanceSimOf(id: number): number {
-    const cents = this.balanceMap.get(id) ?? 0;
-    if (cents < 0) { return 0; }
-    return this.round2(cents / 100);
+    const balances = this.balances.get(id);
+    if (!balances) { return 0; }
+    return this.round2(balances.SIM);
   }
 
-  balanceUsdOf(id: number): number | null {
-    if (this.simUsdPrice == null) { return null; }
-    return this.round2(this.balanceSimOf(id) * this.simUsdPrice);
-  }
-
-  balanceBtcOf(id: number): number | null {
-    const usd = this.balanceUsdOf(id);
-    if (usd == null) { return null; }
-    if (!this.btcUsdReference) { return null; }
-    return this.round8(usd / this.btcUsdReference);
-  }
-
-  private computeBalances(wallets: Wallet[], txs: Transaction[]): void {
-    this.balanceMap.clear();
-    wallets.forEach(w => this.balanceMap.set(w.id, 0));
-    txs.filter(tx => tx.status === 'CONFIRMED').forEach(tx => {
-      const amountCents = this.toCents(tx.amount);
-      const feeCents = this.toCents(tx.fee);
-      const from = this.balanceMap.get(tx.from_wallet);
-      if (from !== undefined) {
-        this.balanceMap.set(tx.from_wallet, from - amountCents - feeCents);
-      }
-      const to = this.balanceMap.get(tx.to_wallet);
-      if (to !== undefined) {
-        this.balanceMap.set(tx.to_wallet, to + amountCents);
-      }
-    });
-  }
-
-  private toCents(value: unknown): number {
-    const num = Number(value ?? 0);
-    if (!Number.isFinite(num)) {
-      return 0;
+  balanceUsdOf(id: number): number {
+    const balances = this.balances.get(id);
+    if (!balances) { return 0; }
+    const simPortion = this.simUsdPrice != null ? balances.SIM * this.simUsdPrice : null;
+    const btcPortion = this.btcUsdReference ? balances.BTC * this.btcUsdReference : null;
+    const usdPortion = balances.USD;
+    if (simPortion == null && btcPortion == null) {
+      return this.round2(usdPortion);
     }
-    return Math.round(num * 100);
+    return this.round2((simPortion ?? 0) + usdPortion + (btcPortion ?? 0));
+  }
+
+  balanceBtcOf(id: number): number {
+    const balances = this.balances.get(id);
+    if (!balances) { return 0; }
+    return this.round8(balances.BTC);
+  }
+
+  private computeBalances(wallets: Wallet[]): void {
+    this.balances.clear();
+    wallets.forEach(wallet => {
+      const simRaw = wallet.balance_sim ?? wallet.balance ?? '0';
+      const usdRaw = wallet.balance_usd ?? '0';
+      const btcRaw = wallet.balance_btc ?? '0';
+      this.balances.set(wallet.id, {
+        SIM: Number(simRaw) || 0,
+        USD: Number(usdRaw) || 0,
+        BTC: Number(btcRaw) || 0,
+      });
+    });
   }
 
   private round2(value: number): number {
