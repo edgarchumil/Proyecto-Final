@@ -63,7 +63,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     if (!this.auth.isAuthenticated()) {
       if (isAuthRoute) {
-        this.router.navigateByUrl('/', { replaceUrl: true });
+        this.router.navigateByUrl('/landing', { replaceUrl: true });
         return;
       }
     } else {
