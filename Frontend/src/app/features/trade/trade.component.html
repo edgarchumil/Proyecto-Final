@@ -1,14 +1,19 @@
 <section class="feature-center">
   <div class="feature-card">
-    <h2>Compra de Bitcoin</h2>
+    <h2>{{ mode === 'buy' ? 'Compra de Bitcoin' : 'Venta de Bitcoin' }}</h2>
+
+    <div class="trade-mode">
+      <button type="button" [class.active]="mode === 'buy'" (click)="changeMode('buy')">Comprar</button>
+      <button type="button" [class.active]="mode === 'sell'" (click)="changeMode('sell')">Vender</button>
+    </div>
 
     <div class="buy-options">
       <button
         type="button"
         class="buy-option"
-        *ngFor="let option of buyOptions"
-        [class.active]="selectedBuyOption === option.id"
-        (click)="selectBuyOption(option.id)">
+        *ngFor="let option of currentOptions"
+        [class.active]="selectedOptionId === option.id"
+        (click)="selectOption(option.id)">
         <span class="icon" aria-hidden="true">{{ option.icon }}</span>
         <span class="details">
           <strong>{{ option.label }}</strong>
@@ -32,23 +37,11 @@
             <option [ngValue]="null">— Seleccionar usuario —</option>
             <option *ngFor="let u of users" [ngValue]="u.id">@{{ u.username }} (#{{ u.id }})</option>
           </select>
-          <small class="muted">Se enviará una solicitud para que la contraparte apruebe la compra.</small>
-        </div>
-        <div class="field">
-          <label>Método seleccionado</label>
-          <input type="text" [value]="selectedBuyOptionLabel" readonly />
+          <small class="muted">Se enviará una solicitud para que la contraparte apruebe la {{ mode === 'buy' ? 'compra' : 'venta' }}.</small>
         </div>
         <div class="field" *ngIf="form.method==='BANK'">
           <label>Referencia bancaria</label>
           <input type="text" [(ngModel)]="form.reference" name="bank_ref" placeholder="Nº operación o referencia" />
-        </div>
-        <div class="field" *ngIf="form.method==='CARD'">
-          <label>Últimos 4 de la tarjeta</label>
-          <input type="text" maxlength="4" [(ngModel)]="form.reference" name="card_last4" placeholder="1234" />
-        </div>
-        <div class="field" *ngIf="form.method==='P2P'">
-          <label>Usuario contraparte</label>
-          <input type="text" [(ngModel)]="form.reference" name="p2p_user" placeholder="@usuario" />
         </div>
         <div class="field">
           <label>Monto</label>
@@ -65,13 +58,23 @@
           <label>Fee</label>
           <input type="number" step="0.01" [(ngModel)]="form.fee" name="fee" />
         </div>
-        <button class="btn primary" type="submit" [disabled]="loading">{{ loading ? 'Procesando…' : (useP2PRequest ? 'Enviar solicitud' : 'Continuar') }}</button>
+        <button class="btn primary" type="submit" [disabled]="loading">
+          {{ loading ? 'Procesando…'
+            : (useP2PRequest
+              ? (mode === 'buy' ? 'Enviar solicitud de compra' : 'Enviar solicitud de venta')
+              : (mode === 'buy' ? 'Continuar compra' : 'Continuar venta')) }}
+        </button>
         <div *ngIf="success" class="success">
           <div>
-            <strong>{{ useP2PRequest ? 'Solicitud enviada' : 'Orden registrada' }}</strong>
+            <strong>
+              {{ successMessage || (useP2PRequest
+                ? (mode === 'buy' ? 'Solicitud de compra enviada' : 'Solicitud de venta enviada')
+                : (mode === 'buy' ? 'Orden de compra registrada' : 'Orden de venta registrada')) }}
+            </strong>
             <div class="muted small">{{ useP2PRequest ? 'Token' : 'TX' }}: {{ success.id }} — {{ success.tx_hash | slice:0:12 }}…</div>
             <div class="muted small">Método: {{ form.method }} {{ form.reference ? '(' + form.reference + ')' : '' }}</div>
-            <div class="muted small">Recuerda CONFIRMAR la transacción en "Transacciones" para que impacte los saldos.</div>
+            <div class="muted small" *ngIf="useP2PRequest">La contraparte debe aprobar la operación para que los fondos se acrediten.</div>
+            <div class="muted small" *ngIf="!useP2PRequest">La operación se confirmó automáticamente y los saldos ya están actualizados.</div>
           </div>
         </div>
         <div *ngIf="error" class="error">{{ error }}</div>
@@ -83,7 +86,7 @@
     <div class="buy-modal__backdrop" (click)="closeBuyModal()"></div>
     <div class="buy-modal__content" (click)="$event.stopPropagation()">
       <header class="buy-modal__header">
-        <h3>Comprar · {{ selectedBuyOptionLabel }}</h3>
+        <h3>{{ mode === 'buy' ? 'Comprar' : 'Vender' }} · {{ selectedOptionLabel }}</h3>
         <button type="button" class="close" (click)="closeBuyModal()" aria-label="Cerrar">×</button>
       </header>
       <ng-container *ngTemplateOutlet="tradeForm"></ng-container>
@@ -94,15 +97,17 @@
     <div class="buy-modal__backdrop" (click)="closeAuthModal()"></div>
     <div class="buy-modal__content" (click)="$event.stopPropagation()">
       <header class="buy-modal__header">
-        <h3>Confirmar compra</h3>
+        <h3>{{ mode === 'buy' ? 'Confirmar compra' : 'Confirmar venta' }}</h3>
         <button type="button" class="close" (click)="closeAuthModal()" aria-label="Cerrar">×</button>
       </header>
-      <form class="trade" (submit)="$event.preventDefault(); confirmPurchase();">
+      <form class="trade" (submit)="$event.preventDefault(); confirmTrade();">
         <div class="field">
           <label>Ingresa tu contraseña</label>
           <input type="password" [(ngModel)]="authPassword" name="authPassword" placeholder="Contraseña" />
         </div>
-        <button class="btn primary" type="submit" [disabled]="authProcessing">{{ authProcessing ? 'Verificando…' : 'Confirmar compra' }}</button>
+        <button class="btn primary" type="submit" [disabled]="authProcessing">
+          {{ authProcessing ? 'Verificando…' : (mode === 'buy' ? 'Confirmar compra' : 'Confirmar venta') }}
+        </button>
         <div *ngIf="authError" class="error">{{ authError }}</div>
       </form>
     </div>

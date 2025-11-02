@@ -1,3 +1,4 @@
+from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
 from decimal import Decimal, ROUND_HALF_UP
@@ -7,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from auditlog.utils import log_action
 
-from .models import Transaction
+from .models import Transaction, TradeRequest
 from wallets.models import Wallet
 from .serializers import (
     TransactionSerializer,
@@ -17,6 +18,7 @@ from .serializers import (
     TradeRequestSerializer,
     TradeRequestCreateSerializer,
 )
+from .utils import wallet_balances
 
 class TransactionViewSet(viewsets.ModelViewSet):
     """
@@ -137,7 +139,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def buy(self, request):
-        """Compra SIM: el exchange envía a tu wallet. Body: { wallet, amount, fee?, method?, reference? }"""
+        """Compra activos: el exchange envía a tu wallet. Body: { wallet, amount, fee?, currency?, method?, reference? }"""
         password = request.data.get('password')
         if not password:
             return Response({'detail': 'Debes ingresar tu contraseña para confirmar la compra.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -147,9 +149,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
         wallet_id = request.data.get('wallet')
         amount = request.data.get('amount')
         fee = request.data.get('fee', '0.00')
+        currency = (request.data.get('currency') or Transaction.CURRENCY_SIM).upper()
+        if currency not in {c for c, _ in Transaction.CURRENCY_CHOICES}:
+            return Response({'detail': 'Moneda inválida.'}, status=status.HTTP_400_BAD_REQUEST)
         method = (request.data.get('method') or 'BANK').upper()
-        if method not in ('BANK', 'CARD', 'P2P'):
-            method = 'BANK'
+        if method not in ('BANK', 'P2P'):
+            return Response({'detail': 'Método inválido. Usa transferencia bancaria o P2P.'}, status=status.HTTP_400_BAD_REQUEST)
         reference = request.data.get('reference')
         if not wallet_id or not amount:
             return Response({'detail': 'wallet y amount son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -168,6 +173,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
             'to_wallet': wallet.id,
             'amount': amount_d,
             'fee': fee_d,
+            'currency': currency,
         }
         s = TransactionCreateSerializer(data=payload)
         s.is_valid(raise_exception=True)
@@ -178,6 +184,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         log_action(request.user, 'TRADE_BUY', {
             'tx_id': tx.id,
             'amount': format(amount_d, '.2f'),
+            'currency': currency,
             'method': method,
             'reference': reference
         })
@@ -185,13 +192,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def sell(self, request):
-        """Vende SIM: tu wallet envía al exchange. Body: { wallet, amount, fee?, method?, reference? }"""
+        """Vende activos: tu wallet envía al exchange. Body: { wallet, amount, fee?, currency?, method?, reference? }"""
+        password = request.data.get('password')
+        if not password:
+            return Response({'detail': 'Debes ingresar tu contraseña para confirmar la venta.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(password):
+            return Response({'detail': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
         wallet_id = request.data.get('wallet')
         amount = request.data.get('amount')
         fee = request.data.get('fee', '0.00')
+        currency = (request.data.get('currency') or Transaction.CURRENCY_SIM).upper()
+        if currency not in {c for c, _ in Transaction.CURRENCY_CHOICES}:
+            return Response({'detail': 'Moneda inválida.'}, status=status.HTTP_400_BAD_REQUEST)
         method = (request.data.get('method') or 'BANK').upper()
-        if method not in ('BANK', 'CARD', 'P2P'):
-            method = 'BANK'
+        if method not in ('BANK', 'P2P'):
+            return Response({'detail': 'Método inválido. Usa transferencia bancaria o P2P.'}, status=status.HTTP_400_BAD_REQUEST)
         reference = request.data.get('reference')
         if not wallet_id or not amount:
             return Response({'detail': 'wallet y amount son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -210,26 +226,28 @@ class TransactionViewSet(viewsets.ModelViewSet):
             'to_wallet': market.id,
             'amount': amount_d,
             'fee': fee_d,
+            'currency': currency,
         }
         s = TransactionCreateSerializer(data=payload)
         s.is_valid(raise_exception=True)
         tx = s.save()
+        confirm = TransactionConfirmSerializer(tx, data={}, partial=True)
+        confirm.is_valid(raise_exception=True)
+        confirm.save()
         log_action(request.user, 'TRADE_SELL', {
             'tx_id': tx.id,
             'amount': format(amount_d, '.2f'),
+            'currency': currency,
             'method': method,
             'reference': reference
         })
         return Response(TransactionSerializer(tx).data, status=status.HTTP_201_CREATED)
-
-from django.db import models
 
 class TradeRequestViewSet(viewsets.ModelViewSet):
     """Solicitudes P2P con token para aprobación."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        from .models import TradeRequest
         scope = self.request.query_params.get('scope')
         qs = TradeRequest.objects.all()
         if scope == 'incoming':
@@ -250,17 +268,21 @@ class TradeRequestViewSet(viewsets.ModelViewSet):
         req = serializer.save()
         log_action(self.request.user, 'TRADE_REQUEST', {
             'id': req.id, 'token': req.token, 'side': req.side,
-            'to': req.counterparty_id, 'amount': str(req.amount)
+            'to': req.counterparty_id, 'amount': str(req.amount), 'currency': req.currency
         })
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        from .models import TradeRequest
         tr: TradeRequest = self.get_object()
         if tr.counterparty_id != request.user.id:
             return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
         if tr.status != 'PENDING':
             return Response({'detail': 'Solicitud no está pendiente.'}, status=status.HTTP_400_BAD_REQUEST)
+        password = str(request.data.get('password', '')).strip()
+        if not password:
+            return Response({'detail': 'Debes ingresar tu contraseña para aprobar la solicitud.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(password):
+            return Response({'detail': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
         # Crear transacción según lado
         req_default = Wallet.objects.filter(user=tr.requester).order_by('created_at')
         req_w = req_default.filter(name__iexact='default').first() or req_default.first()
@@ -269,16 +291,35 @@ class TradeRequestViewSet(viewsets.ModelViewSet):
         if not req_w or not cpty_w:
             return Response({'detail': 'Alguna de las partes no tiene wallet.'}, status=status.HTTP_400_BAD_REQUEST)
         if tr.side == 'SELL':
-            payload = {'from_wallet': req_w.id, 'to_wallet': cpty_w.id, 'amount': tr.amount, 'fee': tr.fee}
+            payload = {'from_wallet': req_w.id, 'to_wallet': cpty_w.id, 'amount': tr.amount, 'fee': tr.fee, 'currency': tr.currency}
         else:
-            payload = {'from_wallet': cpty_w.id, 'to_wallet': req_w.id, 'amount': tr.amount, 'fee': tr.fee}
+            payload = {'from_wallet': cpty_w.id, 'to_wallet': req_w.id, 'amount': tr.amount, 'fee': tr.fee, 'currency': tr.currency}
         s = TransactionCreateSerializer(data=payload)
         s.is_valid(raise_exception=True)
         tx = s.save()
+        confirm = TransactionConfirmSerializer(tx, data={}, partial=True)
+        confirm.is_valid(raise_exception=True)
+        confirm.save()
         tr.status = 'APPROVED'
         tr.save(update_fields=['status'])
-        log_action(request.user, 'TRADE_REQUEST_APPROVE', {'request_id': tr.id, 'tx_id': tx.id})
-        return Response({'request': TradeRequestSerializer(tr).data, 'tx': TransactionSerializer(tx).data})
+        log_action(request.user, 'TRADE_REQUEST_APPROVE', {'request_id': tr.id, 'tx_id': tx.id, 'currency': tr.currency})
+        wallets_payload = {
+            'requester': {
+                'wallet_id': req_w.id,
+                'user_id': req_w.user_id,
+                'balances': {cur: format(balance, '.2f') for cur, balance in wallet_balances(req_w.id).items()}
+            },
+            'counterparty': {
+                'wallet_id': cpty_w.id,
+                'user_id': cpty_w.user_id,
+                'balances': {cur: format(balance, '.2f') for cur, balance in wallet_balances(cpty_w.id).items()}
+            }
+        }
+        return Response({
+            'request': TradeRequestSerializer(tr).data,
+            'tx': TransactionSerializer(tx).data,
+            'wallets': wallets_payload
+        })
 
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
