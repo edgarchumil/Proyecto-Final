@@ -34,10 +34,14 @@ export class LoginComponent {
     });
   }
   submit(): void {
-    if (!this.username || !this.password) { this.error = 'Completa usuario y contraseña.'; return; }
+    const normalizedUser = (this.username || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\s/g, '_');
+    if (!normalizedUser || !this.password) { this.error = 'Completa usuario y contraseña.'; return; }
     this.loading = true; this.error = '';
 
-    this.auth.login(this.username, this.password).subscribe({
+    this.auth.login(normalizedUser, this.password).subscribe({
       next: () => {
         this.preloader.show(5000);
         setTimeout(() => {
