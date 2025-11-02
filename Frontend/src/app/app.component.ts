@@ -59,7 +59,14 @@ export class AppComponent implements OnInit, OnDestroy {
       });
 
     const activeOwner = localStorage.getItem('activeTabId');
-    if (this.auth.isAuthenticated()) {
+    const isAuthRoute = this.router.url.startsWith('/auth/');
+
+    if (!this.auth.isAuthenticated()) {
+      if (isAuthRoute) {
+        this.router.navigateByUrl('/', { replaceUrl: true });
+        return;
+      }
+    } else {
       if (!activeOwner) {
         localStorage.setItem('activeTabId', this.tabId);
       } else if (activeOwner !== this.tabId) {
