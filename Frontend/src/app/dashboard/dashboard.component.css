@@ -242,6 +242,7 @@
   .panel.activity,
   .panel.rates {
     width: 100%;
+    margin: 0 auto;
   }
   .panel.account,
   .panel.activity {
@@ -273,15 +274,67 @@
     align-items: flex-start;
     gap: 6px;
   }
+  .panel.chart .panel__header {
+    align-items: center;
+    text-align: center;
+    width: 100%;
+  }
+  .panel.chart .panel__header h3,
+  .panel.chart .price-inline {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
   .kpis {
     gap: 8px;
+    justify-content: center;
+  }
+  .kpi {
+    text-align: center;
+  }
+  .panel.account h3,
+  .panel.activity h3,
+  .panel.rates h3 {
+    text-align: center;
+  }
+  .panel.account .assets {
+    text-align: center;
+  }
+  .panel.account .wallets-table table th,
+  .panel.account .wallets-table table td {
+    text-align: center;
   }
   .panel.activity .table th,
   .panel.activity .table td {
     font-size: .78rem;
+    text-align: center;
+  }
+  .panel.activity .table .tx-line.primary,
+  .panel.activity .table .tx-line.secondary {
+    text-align: center;
+  }
+  .panel.activity .table .tx-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+  .panel.rates .conversion-table th,
+  .panel.rates .conversion-table td {
+    text-align: center;
   }
   .panel.notice {
-    text-align: left;
+    text-align: center;
+  }
+  .panel.notice strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+  .panel.notice .muted {
+    display: block;
+  }
+  .panel.notice {
+    text-align: center;
   }
 }
 
