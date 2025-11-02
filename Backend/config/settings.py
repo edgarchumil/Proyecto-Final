@@ -15,6 +15,10 @@ elif DEBUG:
 else:
     ALLOWED_HOSTS = []
 
+render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if render_host:
+    ALLOWED_HOSTS.append(render_host)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -152,6 +156,11 @@ else:
         'http://localhost:4200', 'http://127.0.0.1:4200',
     ]
 
+if render_host:
+    render_origin = f"https://{render_host}"
+    if render_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(render_origin)
+
 csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS')
 if csrf_origins:
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(',') if origin.strip()]
@@ -162,5 +171,10 @@ else:
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ]
+
+if render_host:
+    render_origin = f"https://{render_host}"
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
