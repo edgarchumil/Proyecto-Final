@@ -1,11 +1,19 @@
 from pathlib import Path
 from datetime import timedelta
+import os
+from urllib.parse import urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'django-insecure-8&flnunambtx749lwvuna=qs86tm*@q++de!+^7muf2ibia=5c'
-DEBUG = True
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-8&flnunambtx749lwvuna=qs86tm*@q++de!+^7muf2ibia=5c')
+DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
 
-ALLOWED_HOSTS = []
+allowed_hosts = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
+if allowed_hosts:
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(',') if host.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -13,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders', 
@@ -28,6 +37,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -59,12 +69,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+default_db_url = os.environ.get('DATABASE_URL')
+if default_db_url:
+    from dj_database_url import config as dj_database_url_config
+    DATABASES = {
+        'default': dj_database_url_config(default=default_db_url, conn_max_age=600, ssl_require=not DEBUG)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -88,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-es'
 
 TIME_ZONE = 'UTC'
 
@@ -101,6 +118,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -123,16 +142,25 @@ SIMPLE_JWT = {
 }
 
 
-# CORS: permite que el frontend (puerto 4200 o 8000) consuma la API
-CORS_ALLOWED_ORIGINS = [
-    #'http://localhost:5500', 'http://127.0.0.1:5500',
-    'http://localhost:8000', 'http://127.0.0.1:8000',
-    'http://localhost:4200', 'http://127.0.0.1:4200',
-]
+# CORS: permite que el frontend consuma la API
+frontend_origins = os.environ.get('FRONTEND_ORIGINS')
+if frontend_origins:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in frontend_origins.split(',') if origin.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:8000', 'http://127.0.0.1:8000',
+        'http://localhost:4200', 'http://127.0.0.1:4200',
+    ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:4200",
-    "http://127.0.0.1:4200",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
+csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS')
+if csrf_origins:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(',') if origin.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
