@@ -34,10 +34,7 @@ export class LoginComponent {
     });
   }
   submit(): void {
-    const normalizedUser = (this.username || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .replace(/\s/g, '_');
+    const normalizedUser = (this.username || '').replace(/\s+/g, ' ').trim();
     if (!normalizedUser || !this.password) { this.error = 'Completa usuario y contraseña.'; return; }
     this.loading = true; this.error = '';
 

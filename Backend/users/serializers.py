@@ -29,12 +29,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         cleaned = re.sub(r'\s+', ' ', value or '').strip()
         if not cleaned:
             raise serializers.ValidationError('El usuario es obligatorio.')
-        normalized = cleaned.replace(' ', '_')
-        if not re.match(r'^[\w.@+-]+$', normalized):
-            raise serializers.ValidationError('Solo se permiten letras, números y los símbolos @/./+/-/_.')
-        if User.objects.filter(username__iexact=normalized).exists():
+        # Permitimos letras, números y espacios más los símbolos habituales.
+        if not re.match(r'^[\w.@+\-/ ]+$', cleaned):
+            raise serializers.ValidationError('Solo se permiten letras, números, espacios y los símbolos @/./+/-/_.')
+        if User.objects.filter(username__iexact=cleaned).exists():
             raise serializers.ValidationError('Este usuario ya existe. Elige otro nombre.')
-        return normalized
+        return cleaned
 
     def create(self, validated_data):
         username = validated_data.pop('username')
