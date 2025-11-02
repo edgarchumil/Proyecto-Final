@@ -13,8 +13,13 @@ import { LandingComponent } from './landing/landing.component';
 
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'landing', pathMatch: 'full' },
-  { path: 'landing', component: LandingComponent },
+  {
+    path: '',
+    children: [
+      { path: '', component: LandingComponent, pathMatch: 'full' },
+      { path: 'landing', component: LandingComponent }
+    ]
+  },
   { path: 'auth/login', component: LoginComponent },
   { path: 'auth/register', component: RegisterComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard] },
