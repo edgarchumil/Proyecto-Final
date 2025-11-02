@@ -1,6 +1,7 @@
 <header class="topbar" role="banner">
   <div class="topbar__container">
     <a class="brand" routerLink="/" aria-label="Inicio">
+      <img class="brand-icon" src="/favicon.svg" alt="" aria-hidden="true">
       Cripto <span>• Desarrollo Web</span>
     </a>
 
@@ -18,7 +19,8 @@
     <nav class="nav" [class.open]="open" role="navigation" aria-label="Principal">
       <a *ngIf="isLoggedIn" class="cta buy" routerLink="/trade" [queryParams]="{ side: 'buy' }" routerLinkActive="active" (click)="close()">Comprar</a>
       <a *ngIf="isLoggedIn" class="cta sell" routerLink="/trade" [queryParams]="{ side: 'sell' }" routerLinkActive="active" (click)="close()">Vender</a>
-      <a *ngIf="!isAuthPage" routerLink="/dashboard" routerLinkActive="active" (click)="close()">Dashboard</a>
+      <a *ngIf="isLoggedIn" routerLink="/dashboard" routerLinkActive="active" (click)="close()">Dashboard</a>
+      <a *ngIf="!isLoggedIn" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="close()">Page</a>
       <div *ngIf="isLoggedIn" class="notif-wrapper">
         <a href="#"
            class="notif-bell"

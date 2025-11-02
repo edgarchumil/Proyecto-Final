@@ -16,8 +16,17 @@
 .brand{
   color: #fff; font-weight: 800; letter-spacing: .2px;
   text-decoration: none; font-size: clamp(1.1rem, 2vw, 1.6rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 .brand span{ font-weight: 600; opacity: .9; }
+.brand-icon{
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(247, 147, 26, 0.35);
+}
 
 /* ===== Menú (desktop) ===== */
 .nav{

@@ -13,18 +13,21 @@ import { AuthService } from '../../core/auth.service';
 })
 export class RegisterComponent {
   username = '';
-  email = '';
   password = '';
+  confirmPassword = '';
   msg = '';
   loading = false;
   constructor(private auth: AuthService, private router: Router) {}
   submit(): void {
     if (!this.username) { this.msg = 'El usuario es obligatorio.'; return; }
-    if (!this.password || this.password.length < 6) { this.msg = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+    if (!this.isStrongPassword(this.password)) { return; }
+    if (this.password !== this.confirmPassword) { this.msg = 'Las contraseñas no coinciden.'; return; }
     this.loading = true; this.msg = 'Creando cuenta...';
-    this.auth.register(this.username, this.email || null, this.password).subscribe({
+    this.auth.register(this.username, '', this.password).subscribe({
       next: (data: any) => {
         this.msg = `¡Bienvenido ${data?.username || this.username}! Se creó tu wallet por defecto y acreditamos 5 SIM.`;
+        this.password = '';
+        this.confirmPassword = '';
         // Flag para mostrar aviso post-login
         try { localStorage.setItem('welcomeCredit', '1'); } catch {}
         // Enviar al login con redirect a dashboard y marca de bienvenida
@@ -35,5 +38,22 @@ export class RegisterComponent {
         this.msg = 'Error al registrar: ' + ((e?.error && typeof e.error === 'object') ? JSON.stringify(e.error) : 'Intenta de nuevo.');
       }
     });
+  }
+
+  private isStrongPassword(value: string): boolean {
+    if (!value) {
+      this.msg = 'La contraseña es obligatoria.';
+      return false;
+    }
+    const hasMinLength = value.length >= 8;
+    const hasUpper = /[A-Z]/.test(value);
+    const hasLower = /[a-z]/.test(value);
+    const hasNumber = /\d/.test(value);
+    const hasSymbol = /[^\w\s]/.test(value);
+    if (!(hasMinLength && hasUpper && hasLower && hasNumber && hasSymbol)) {
+      this.msg = 'La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas, números y símbolos.';
+      return false;
+    }
+    return true;
   }
 }

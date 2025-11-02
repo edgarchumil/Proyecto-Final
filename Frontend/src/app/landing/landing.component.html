@@ -1,0 +1,117 @@
+<section class="hero">
+  <div class="hero-copy">
+    <h1>La puerta de entrada a tu exchange de SIM</h1>
+    <p>
+      Opera con confianza en un entorno inspirado en el estándar de Binance, pero construido a la medida de tu
+      plataforma. Compra, vende y gestiona SIM, BTC y USD con la seguridad de un sistema auditado y transparente.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" routerLink="/auth/login">Iniciar sesión</a>
+      <a class="btn outline" routerLink="/auth/register">Crear cuenta</a>
+    </div>
+    <div class="hero-footnote">Haz crecer tu patrimonio cripto con precios en tiempo real, comercio P2P y wallets seguras.</div>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <div class="orb"></div>
+    <div class="card">
+      <span class="label">Precio SIM / USD</span>
+      <strong>20.10</strong>
+      <span class="change">▲ 11.9%</span>
+      <div class="sparkline">
+        <span *ngFor="let _ of sparkline; let i = index" [style.height.%]="40 + (i % 6) * 8"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <span class="value">+12K</span>
+    <span class="caption">Usuarios verificados</span>
+  </div>
+  <div class="stat">
+    <span class="value">48 ms</span>
+    <span class="caption">Latencia promedio de órdenes</span>
+  </div>
+  <div class="stat">
+    <span class="value">99.99%</span>
+    <span class="caption">Tiempo activo del sistema</span>
+  </div>
+  <div class="stat">
+    <span class="value">24/7</span>
+    <span class="caption">Monitor de precios y auditoría</span>
+  </div>
+</section>
+
+<section class="features">
+  <header>
+    <h2>Todo lo que necesitas para operar SIM</h2>
+    <p>Reúne trading, wallets y auditoría en un mismo tablero con diseño oscuro y controles optimizados.</p>
+  </header>
+  <div class="feature-grid">
+    <article class="feature-card">
+      <div class="icon">📈</div>
+      <h3>Dashboard en vivo</h3>
+      <p>Visualiza precios SIM/USD, balances por moneda y métricas clave desde un panel preparado para traders.</p>
+    </article>
+    <article class="feature-card">
+      <div class="icon">🤝</div>
+      <h3>Comercio P2P</h3>
+      <p>Solicitudes de compra/venta con comprobación de fondos, aprobación con contraseña y auditoría de acciones.</p>
+    </article>
+    <article class="feature-card">
+      <div class="icon">🔐</div>
+      <h3>Seguridad avanzada</h3>
+      <p>Multiwallet por usuario, confirmaciones on-chain simuladas y registros de auditoría accesibles en segundos.</p>
+    </article>
+    <article class="feature-card">
+      <div class="icon">⚡️</div>
+      <h3>Operaciones rápidas</h3>
+      <p>Envía órdenes directas al exchange o liquídalas contra usuarios con latencia mínima y notificaciones instantáneas.</p>
+    </article>
+  </div>
+</section>
+
+<section class="workflow">
+  <h2>¿Cómo funciona?</h2>
+  <ol>
+    <li>
+      <strong>Crea tu cuenta en segundos</strong>
+      <span>Registra usuario y confirma tu contraseña. Te entregamos una wallet por defecto con 5 SIM.</span>
+    </li>
+    <li>
+      <strong>Deposita o recibe SIM, BTC y USD</strong>
+      <span>Gestiona varias wallets y consulta el historial de transacciones con filtros avanzados.</span>
+    </li>
+    <li>
+      <strong>Opera con trading directo o P2P</strong>
+      <span>Compra con métodos bancarios, tarjeta o solicita operaciones a contrapartes verificadas.</span>
+    </li>
+    <li>
+      <strong>Audita cada movimiento</strong>
+      <span>Revisa el registro de acciones para confirmar aprobaciones, creaciones de bloque o cambios críticos.</span>
+    </li>
+  </ol>
+</section>
+
+<section class="cta">
+  <div class="cta-card">
+    <h2>Listo para comenzar a operar SIM?</h2>
+    <p>Inicia sesión para acceder al dashboard o crea una cuenta para recibir saldo de bienvenida y probar el flujo completo.</p>
+    <div class="cta-actions">
+      <a class="btn primary" routerLink="/auth/login">Acceder ahora</a>
+      <a class="btn outline" routerLink="/auth/register">Crear cuenta gratis</a>
+    </div>
+  </div>
+</section>
+
+<footer class="landing-footer">
+  <div class="footer-brand">SIM Exchange</div>
+  <nav class="footer-links" aria-label="Enlaces inferiores">
+    <a routerLink="/price">Precios</a>
+    <a routerLink="/trade">Trading</a>
+    <a routerLink="/audit">Auditoría</a>
+    <a routerLink="/wallets">Wallets</a>
+  </nav>
+  <div class="footer-meta">Grupo 1 · Desarrollo Web · Proyecto Final</div>
+</footer>

@@ -3,8 +3,9 @@
     <h2 id="reg-title">Registro</h2>
 
     <input id="reg-username" [(ngModel)]="username" placeholder="usuario" autocomplete="username" />
-    <input id="reg-email" [(ngModel)]="email" placeholder="email (opcional)" autocomplete="email" />
     <input id="reg-password" [(ngModel)]="password" type="password" placeholder="contraseña" autocomplete="new-password" />
+    <p class="password-hint">Usa al menos 8 caracteres combinando mayúsculas, minúsculas, números y símbolos.</p>
+    <input id="reg-password-confirm" [(ngModel)]="confirmPassword" type="password" placeholder="confirmar contraseña" autocomplete="new-password" />
 
     <button class="btn primary" type="button" (click)="submit()" [disabled]="loading">
       {{ loading ? 'Creando...' : 'Crear cuenta' }}
