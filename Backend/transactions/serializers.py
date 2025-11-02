@@ -181,6 +181,21 @@ class TradeRequestCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'password': 'No se pudo validar la contraseña.'})
         if not request.user.check_password(password):
             raise serializers.ValidationError({'password': 'Contraseña incorrecta.'})
+
+        amount = Decimal(str(attrs.get('amount', '0'))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+        fee = Decimal(str(attrs.get('fee', '0'))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+        attrs['amount'] = amount
+        attrs['fee'] = fee
+
+        if attrs.get('side') == TradeRequest.SIDE_SELL:
+            wallets_qs = Wallet.objects.filter(user=request.user).order_by('created_at')
+            default_wallet = wallets_qs.filter(name__iexact='default').first() or wallets_qs.first()
+            if not default_wallet:
+                raise serializers.ValidationError({'detail': 'No tienes una wallet disponible para vender.'})
+            available = wallet_available_balance(default_wallet.id, currency)
+            if amount + fee > available:
+                raise serializers.ValidationError({'amount': 'Fondos insuficientes para completar la venta.'})
+            attrs['source_wallet_id'] = default_wallet.id
         return attrs
 
     def create(self, validated_data):
@@ -188,8 +203,5 @@ class TradeRequestCreateSerializer(serializers.ModelSerializer):
         requester = self.context['request'].user
         validated_data.pop('password', None)
         token = secrets.token_hex(16)
-        amount = Decimal(str(validated_data.get('amount', Decimal('0')))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
-        fee = Decimal(str(validated_data.get('fee', Decimal('0')))).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
-        validated_data['amount'] = amount
-        validated_data['fee'] = fee
+        validated_data.pop('source_wallet_id', None)
         return TradeRequest.objects.create(requester=requester, token=token, **validated_data)
